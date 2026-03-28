@@ -26,7 +26,7 @@
         .hidden { display: none !important; }
         #status { margin-top: 15px; font-weight: bold; color: #333; }
         
-        /* NEW DYNAMIC SPINNER */
+        /* DYNAMIC SPINNER */
         .loader-container { display: flex; flex-direction: column; align-items: center; margin-top: 15px; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin-bottom: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -118,9 +118,12 @@
 </div>
 
 <script>
+    // THE GLOBAL CLOUD UPLINK
+    const API_BASE_URL = "https://schema-sync-engine.onrender.com";
+
     window.onload = async () => {
         if (localStorage.getItem('token') && localStorage.getItem('jobId')) {
-            await fetch(`http://127.0.0.1:8000/verify-payment/${localStorage.getItem('jobId')}`, {
+            await fetch(`${API_BASE_URL}/verify-payment/${localStorage.getItem('jobId')}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
@@ -140,13 +143,13 @@
     }
 
     async function performLogin() {
-        showSpinner("Authenticating...");
+        showSpinner("Authenticating with Cloud Server...");
         const formData = new URLSearchParams();
         formData.append('username', document.getElementById('email').value);
         formData.append('password', document.getElementById('password').value);
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/token', { method: 'POST', body: formData });
+            const response = await fetch(`${API_BASE_URL}/token`, { method: 'POST', body: formData });
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem('token', data.access_token);
@@ -157,10 +160,12 @@
             } else {
                 document.getElementById('status').textContent = "Authentication Failed.";
                 document.getElementById('status').style.color = 'red';
+                hideSpinner();
             }
         } catch (e) {
-            document.getElementById('status').textContent = "Server offline.";
+            document.getElementById('status').textContent = "Cloud Server offline or warming up.";
             document.getElementById('status').style.color = 'red';
+            hideSpinner();
         }
     }
 
@@ -178,11 +183,10 @@
         formData.append('file', fileInput.files[0]);
         
         document.getElementById('quote-btn').disabled = true;
-        // ACTIVATE THE SPINNER
-        showSpinner("AI is mapping schema & formatting rows. Please wait...");
+        showSpinner("AI Orchestrator mapping schema in the cloud. Please wait...");
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/quote', {
+            const response = await fetch(`${API_BASE_URL}/quote`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                 body: formData
@@ -216,13 +220,12 @@
                 document.getElementById('checkout-section').classList.remove('hidden');
                 document.getElementById('subtitle').textContent = "Review your formatted data.";
                 
-                // HIDE THE SPINNER
                 hideSpinner();
             } else {
-                document.getElementById('status').textContent = "Pipeline Error. Check backend terminal.";
+                document.getElementById('status').textContent = "Pipeline Error. Check cloud logs.";
                 document.getElementById('status').style.color = 'red';
                 document.getElementById('quote-btn').disabled = false;
-                document.querySelector('.loader').style.display = 'none'; // Stop spinning on error
+                document.querySelector('.loader').style.display = 'none'; 
             }
         } catch (e) {
             document.getElementById('status').textContent = "Network Error.";
@@ -233,9 +236,9 @@
 
     async function payWithStripe() {
         showSpinner("Connecting to Stripe Secure Gateway...");
-        document.querySelector('.loader').style.display = 'none'; // Remove spinner, keep text
+        document.querySelector('.loader').style.display = 'none'; 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/checkout/${localStorage.getItem('jobId')}`, {
+            const response = await fetch(`${API_BASE_URL}/checkout/${localStorage.getItem('jobId')}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
@@ -248,7 +251,7 @@
 
     async function downloadFile() {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/download/${localStorage.getItem('jobId')}`, {
+            const response = await fetch(`${API_BASE_URL}/download/${localStorage.getItem('jobId')}`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             if (response.ok) {

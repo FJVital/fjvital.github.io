@@ -7,34 +7,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import List
-from orchestrator import run_orchestrator
+
+# INTERNAL MODULES
 import database
 import auth
 
-# Initialize App
+# INITIALIZE APP
 app = FastAPI()
 
 # MASTER CORS CONFIGURATION
-# This allows your GitHub Pages site to communicate with the Render API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for global connectivity
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # CLOUD ENVIRONMENT KEYS
-# These are pulled from the Render 'Environment Variables' vault
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+# DELAYED IMPORT: This prevents the NameError by ensuring keys are loaded first
+from orchestrator import run_orchestrator
 
 # STORAGE
 UPLOAD_DIR = "vault"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-# VOLATILE JOB DATABASE (Local staging for processing)
+# VOLATILE JOB DATABASE
 jobs = {}
 
 @app.post("/token")
@@ -52,22 +54,22 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
     input_path = os.path.join(UPLOAD_DIR, f"input_{job_id}.csv")
     output_path = os.path.join(UPLOAD_DIR, f"output_{job_id}.csv")
 
-    # Save incoming raw file
     with open(input_path, "wb") as f:
         f.write(await file.read())
 
-    # Calculate row count for billing
     row_count = 0
     with open(input_path, "r", encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
-        next(reader, None) # Skip header
+        next(reader, None)
         for _ in reader:
             row_count += 1
 
-    # Run AI Orchestrator
-    run_orchestrator(input_path, output_path)
+    # Execute the AI Mapping
+    success = run_orchestrator(input_path, output_path)
+    if not success:
+        raise HTTPException(status_code=500, detail="AI Orchestrator failed to process CSV.")
 
-    # Generate Preview (First 20 rows)
+    # Generate Preview
     preview_data = []
     headers = []
     with open(output_path, "r", encoding='utf-8', errors='ignore') as f:
@@ -79,13 +81,12 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
             else:
                 break
 
-    # Calculate dynamic price ($0.01 per row)
     total_price = max(5.00, row_count * 0.01)
 
     jobs[job_id] = {
         "input_path": input_path,
         "output_path": output_path,
-        "price": int(total_price * 100), # Stripe expects cents
+        "price": int(total_price * 100),
         "paid": False
     }
 
@@ -138,5 +139,4 @@ async def download(job_id: str, current_user: str = Depends(auth.get_current_use
 
 if __name__ == "__main__":
     import uvicorn
-    # Use port 10000 for Render compatibility
     uvicorn.run(app, host="0.0.0.0", port=10000)
