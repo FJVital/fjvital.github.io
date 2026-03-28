@@ -1,10 +1,7 @@
 fastapi
 uvicorn
+python-multipart
 stripe
 google-generativeai
-sqlalchemy
-python-jose[cryptography]
-python-multipart
-bcrypt==4.0.1
-passlib
+bcrypt
 python-jose[cryptography]
