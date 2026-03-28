@@ -15,7 +15,7 @@ import auth
 # INITIALIZE APP
 app = FastAPI()
 
-# MASTER CORS CONFIGURATION
+# MASTER CORS CONFIGURATION (Global Override)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -28,7 +28,7 @@ app.add_middleware(
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# DELAYED IMPORT: This prevents the NameError by ensuring keys are loaded first
+# DELAYED IMPORT: Prevents NameError by ensuring keys are loaded first
 from orchestrator import run_orchestrator
 
 # STORAGE
