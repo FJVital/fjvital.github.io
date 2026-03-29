@@ -81,7 +81,7 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
             else:
                 break
 
-    total_price = max(5.00, row_count * 0.01)
+    total_price = max(5.00, row_count * 0.01111)
 
     jobs[job_id] = {
         "input_path": input_path,
