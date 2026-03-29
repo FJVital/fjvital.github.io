@@ -15,14 +15,18 @@ import auth
 # INITIALIZE APP
 app = FastAPI()
 
-# MASTER CORS CONFIGURATION (STRICT WHITELIST)
+# MASTER CORS CONFIGURATION (MAXIMUM WHITELIST)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "[https://fjvital.github.io](https://fjvital.github.io)", 
+        "[https://fjvital.github.io](https://fjvital.github.io)",
+        "[http://fjvital.github.io](http://fjvital.github.io)",
         "http://localhost:8000",
-        "http://localhost:10000"
-    ], 
+        "http://localhost:10000",
+        "http://localhost:5500",
+        "[http://127.0.0.1:5500](http://127.0.0.1:5500)",
+        "null" # Allows testing locally by double-clicking the HTML file
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,6 +46,11 @@ if not os.path.exists(UPLOAD_DIR):
 
 # VOLATILE JOB DATABASE
 jobs = {}
+
+@app.get("/")
+async def root():
+    """Health check endpoint to ensure server is live."""
+    return {"status": "Schema-Sync Backend is Live"}
 
 @app.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):

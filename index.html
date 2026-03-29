@@ -15,7 +15,7 @@
         .instructions-box ol { margin: 0; padding-left: 20px; }
         .instructions-box li span { font-weight: bold; color: #007bff; }
 
-        .input-field { width: 90%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .input-field { width: 90%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         .upload-area { border: 2px dashed #007bff; border-radius: 5px; padding: 30px; cursor: pointer; transition: background 0.3s; margin-bottom: 20px; display: block; }
         .upload-area:hover { background: #f0f8ff; }
         input[type="file"] { display: none; }
@@ -61,9 +61,11 @@
     </div>
 
     <div id="login-section">
-        <input type="email" id="email" class="input-field" placeholder="Email Address" value="fjvital@gmail.com">
-        <input type="password" id="password" class="input-field" placeholder="Password" value="$Fortune11$">
-        <button id="login-btn" onclick="performLogin()">Secure Login</button>
+        <form id="login-form">
+            <input type="email" id="email" class="input-field" placeholder="Email Address" value="fjvital@gmail.com" required>
+            <input type="password" id="password" class="input-field" placeholder="Password" value="$Fortune11$" required>
+            <button type="submit" id="login-btn">Secure Login</button>
+        </form>
     </div>
 
     <div id="upload-section" class="hidden">
@@ -124,6 +126,12 @@
 <script>
     const API_BASE_URL = "[https://schema-sync-engine.onrender.com](https://schema-sync-engine.onrender.com)";
 
+    // Attach event listener cleanly to prevent DOM warnings
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        performLogin();
+    });
+
     window.onload = async () => {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -172,7 +180,7 @@
                 }
                 hideSpinner();
             } else {
-                document.getElementById('status').textContent = "Authentication Failed.";
+                document.getElementById('status').textContent = "Authentication Failed (Check credentials).";
                 document.getElementById('status').style.color = 'red';
                 hideSpinner();
             }
@@ -282,11 +290,9 @@
             });
             
             if (response.ok) {
-                // Payment cleared instantly! Show the download screen.
                 document.getElementById('download-section').classList.remove('hidden');
                 hideSpinner();
             } else {
-                // Payment declined or no card on file
                 const err = await response.json();
                 alert(err.detail || "Payment failed. Please check your billing setup.");
                 document.getElementById('checkout-section').classList.remove('hidden');
