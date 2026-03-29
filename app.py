@@ -45,6 +45,19 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user or not auth.verify_password(form_data.password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
+    # PHASE 1 AUTO-BILLING: Ensure user has a Stripe Customer profile
+    if not user.get("stripe_customer_id"):
+        try:
+            # Create a new customer in Stripe
+            customer = stripe.Customer.create(email=user["username"])
+            # Save the ID back to our database
+            database.update_stripe_customer_id(user["username"], customer.id)
+            user["stripe_customer_id"] = customer.id
+            print(f"Created Stripe Customer: {customer.id}")
+        except Exception as e:
+            print(f"Stripe Customer Creation Failed: {e}")
+            raise HTTPException(status_code=500, detail="Billing system error.")
+
     access_token = auth.create_access_token(data={"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -81,6 +94,7 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
             else:
                 break
 
+    # UPDATED PRICING MARGIN
     total_price = max(5.00, row_count * 0.01111)
 
     jobs[job_id] = {
@@ -105,6 +119,8 @@ async def create_checkout(job_id: str, current_user: str = Depends(auth.get_curr
     
     job = jobs[job_id]
     
+    # Note: This is still the manual checkout link. 
+    # We will rewrite this into an Off-Session Auto-Charge in Phase 3.
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
