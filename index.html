@@ -25,7 +25,7 @@
         .hidden { display: none !important; }
         #status { margin-top: 15px; font-weight: bold; color: #333; }
         
-        /* NEW SPINNER UI WITH PERCENTAGE */
+        /* FAST SPINNER UI */
         .loader-container { display: flex; flex-direction: column; align-items: center; margin-top: 15px; }
         .loader-wrapper { position: relative; width: 45px; height: 45px; margin-bottom: 10px; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 100%; height: 100%; animation: spin 1s linear infinite; box-sizing: border-box; }
@@ -119,7 +119,7 @@
     <div id="processing-ui" class="loader-container hidden">
         <div class="loader-wrapper">
             <div class="loader"></div>
-            <div id="progress-text" class="progress-text">0%</div>
+            <div id="progress-text" class="progress-text hidden">0%</div>
         </div>
         <div id="status" style="margin-top: 0; color: #007bff;"></div>
     </div>
@@ -133,34 +133,34 @@
     const API_BASE_URL = "https://schema-sync-engine.onrender.com";
     let progressInterval;
 
-    // PERCENTAGE SPINNER LOGIC
-    function showSpinner(message, durationMs = 3000) {
+    // UPDATED SPINNER LOGIC (Percentage is now optional and disabled for login)
+    function showSpinner(message, showPercentage = false, durationMs = 3000) {
         document.getElementById('processing-ui').classList.remove('hidden');
         document.getElementById('status').textContent = message;
         
-        let progress = 0;
         const progressEl = document.getElementById('progress-text');
-        progressEl.textContent = "0%";
-        
         clearInterval(progressInterval);
-        
-        // Simulates progress ticking up over the estimated duration
-        const stepTime = durationMs / 20; 
-        progressInterval = setInterval(() => {
-            if (progress < 95) {
-                progress += Math.floor(Math.random() * 8) + 2; 
-                if (progress > 95) progress = 95;
-                progressEl.textContent = progress + "%";
-            }
-        }, stepTime);
+
+        if (showPercentage) {
+            progressEl.classList.remove('hidden');
+            progressEl.textContent = "0%";
+            let progress = 0;
+            const stepTime = durationMs / 20; 
+            progressInterval = setInterval(() => {
+                if (progress < 95) {
+                    progress += Math.floor(Math.random() * 8) + 2; 
+                    if (progress > 95) progress = 95;
+                    progressEl.textContent = progress + "%";
+                }
+            }, stepTime);
+        } else {
+            progressEl.classList.add('hidden');
+        }
     }
 
     function hideSpinner() {
         clearInterval(progressInterval);
-        document.getElementById('progress-text').textContent = "100%";
-        setTimeout(() => {
-            document.getElementById('processing-ui').classList.add('hidden');
-        }, 300); // Wait 0.3s so user sees "100%" before hiding
+        document.getElementById('processing-ui').classList.add('hidden');
     }
 
     document.getElementById('login-form').addEventListener('submit', function(e) {
@@ -189,10 +189,9 @@
     };
 
     async function performLogin() {
-        showSpinner("Authenticating with Cloud Server...", 1500); // Fast process
+        showSpinner("Authenticating..."); // Instant spinner, no percentage
 
         try {
-            // THE FIX: Clean JSON Request
             const response = await fetch(`${API_BASE_URL}/token`, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -215,12 +214,12 @@
             } else {
                 document.getElementById('status').textContent = "Authentication Failed (Check credentials).";
                 document.getElementById('status').style.color = 'red';
-                clearInterval(progressInterval);
+                hideSpinner();
             }
         } catch (e) {
             document.getElementById('status').textContent = "Cloud Server offline or warming up.";
             document.getElementById('status').style.color = 'red';
-            clearInterval(progressInterval);
+            hideSpinner();
         }
     }
 
@@ -233,7 +232,7 @@
     }
 
     async function setupCard() {
-        showSpinner("Connecting to Stripe Secure Vault...", 2000);
+        showSpinner("Connecting to Stripe Secure Vault..."); // Instant spinner, no percentage
         try {
             const response = await fetch(`${API_BASE_URL}/vault-card?_t=${Date.now()}`, {
                 method: 'POST',
@@ -259,7 +258,9 @@
         localStorage.setItem('origFileName', fileInput.files[0].name);
         
         document.getElementById('quote-btn').disabled = true;
-        showSpinner("AI Orchestrator mapping schema. Please wait...", 8000); // Slower process
+        
+        // This is the ONLY place the percentage spinner triggers
+        showSpinner("AI Orchestrator mapping schema. Please wait...", true, 8000); 
 
         try {
             const response = await fetch(`${API_BASE_URL}/quote?_t=${Date.now()}`, {
@@ -303,19 +304,17 @@
                 document.getElementById('status').textContent = "Pipeline Error. Check cloud logs.";
                 document.getElementById('status').style.color = 'red';
                 document.getElementById('quote-btn').disabled = false;
-                clearInterval(progressInterval);
-                document.querySelector('.loader-wrapper').style.display = 'none'; 
+                hideSpinner(); 
             }
         } catch (e) {
             document.getElementById('status').textContent = "Network Error.";
             document.getElementById('quote-btn').disabled = false;
-            clearInterval(progressInterval);
-            document.querySelector('.loader-wrapper').style.display = 'none';
+            hideSpinner();
         }
     }
 
     async function payWithStripe() {
-        showSpinner("Processing 1-Click Payment...", 2500);
+        showSpinner("Processing 1-Click Payment..."); // Instant spinner, no percentage
         document.getElementById('checkout-section').classList.add('hidden'); 
         
         try {
@@ -329,7 +328,8 @@
                 hideSpinner();
             } else {
                 const err = await response.json();
-                alert(err.detail || "Payment failed. Please check your billing setup.");
+                // THIS ALERT NOW SHOWS THE EXACT STRIPE ERROR INSTEAD OF "Payment failed."
+                alert("Charge Failed: " + (err.detail || "Unknown billing error.")); 
                 document.getElementById('checkout-section').classList.remove('hidden');
                 hideSpinner();
             }
@@ -364,8 +364,8 @@
                 localStorage.removeItem('origFileName');
                 
                 document.getElementById('main-container').style.width = '450px';
-                showSpinner("Transfer complete! Refresh to start over.", 1000);
-                document.querySelector('.loader-wrapper').style.display = 'none';
+                showSpinner("Transfer complete! Refresh to start over.", false, 1000);
+                setTimeout(hideSpinner, 1000);
             }
         } catch (e) {}
     }

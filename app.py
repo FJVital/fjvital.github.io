@@ -96,7 +96,6 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
 
     total_price = max(5.00, row_count * 0.01111)
     
-    # SAVE TO PERSISTENT DATABASE
     database.create_job(job_id, input_path, output_path, int(total_price * 100))
 
     return {
@@ -141,11 +140,10 @@ async def auto_charge(job_id: str, current_user: str = Depends(auth.get_current_
             type="card",
         )
         if not payment_methods.data:
-            raise HTTPException(status_code=400, detail="No card on file.")
+            raise HTTPException(status_code=400, detail="No card on file. Please add a card via Express Billing.")
             
         payment_method_id = payment_methods.data[0].id
         
-        # STRIPE CHARGE (Includes Metadata for the Webhook)
         intent = stripe.PaymentIntent.create(
             amount=job["price"],
             currency='usd',
@@ -153,19 +151,23 @@ async def auto_charge(job_id: str, current_user: str = Depends(auth.get_current_
             payment_method=payment_method_id,
             off_session=True,
             confirm=True,
-            metadata={"job_id": job_id} # CRITICAL: Tells Stripe which job we are paying for
+            metadata={"job_id": job_id}
         )
         
-        # We also mark it paid here for instant UI feedback
         database.mark_job_paid(job_id)
         return {"status": "success"}
         
     except stripe.error.CardError as e:
+        print(f"STRIPE CARD ERROR: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Charge declined: {e.user_message}")
+    except stripe.error.StripeError as e:
+        print(f"STRIPE API ERROR: {str(e)}")
+        # This prevents the 500 error and sends the real Stripe reason to the frontend
+        raise HTTPException(status_code=400, detail=f"Stripe configuration error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal billing error.")
+        print(f"SYSTEM ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal System Error: {str(e)}")
 
-# --- NEW: SECURE STRIPE WEBHOOK ---
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
     payload = await request.body()

@@ -1,0 +1,176 @@
+!DOCTYPE html
+html lang=en
+head
+    meta charset=UTF-8
+    meta name=viewport content=width=device-width, initial-scale=1.0
+    titleSchema-Sync  B2B Data Pipelinetitle
+    style
+         CSS Reset & Variables 
+        root {
+            --bg-color #0F1115;
+            --text-primary #F3F4F6;
+            --text-secondary #9CA3AF;
+            --accent #3B82F6;
+            --accent-hover #2563EB;
+            --box-bg #1F2937;
+            --border-color #374151;
+        }
+         { box-sizing border-box; margin 0; padding 0; }
+        body {
+            font-family -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background-color var(--bg-color);
+            color var(--text-primary);
+            display flex;
+            flex-direction column;
+            min-height 100vh;
+            overflow-x hidden;
+        }
+
+         Navigation 
+        nav {
+            display flex;
+            justify-content space-between;
+            align-items center;
+            padding 1.5rem 3rem;
+            border-bottom 1px solid var(--border-color);
+        }
+        .logo { font-weight 700; font-size 1.25rem; letter-spacing -0.025em; }
+        .logo span { color var(--text-secondary); font-size 0.875rem; font-weight 500; margin-left 0.5rem; }
+        .nav-button {
+            background transparent;
+            color var(--text-secondary);
+            border 1px solid var(--border-color);
+            padding 0.5rem 1rem;
+            border-radius 6px;
+            font-size 0.875rem;
+            cursor pointer;
+            transition all 0.2s;
+        }
+        .nav-buttonhover { color var(--text-primary); border-color var(--text-primary); }
+
+         Hero Section 
+        main {
+            flex 1;
+            display flex;
+            flex-direction column;
+            align-items center;
+            justify-content center;
+            padding 2rem 1rem;
+            text-align center;
+            max-width 800px;
+            margin 0 auto;
+        }
+        h1 { font-size 3rem; font-weight 800; line-height 1.1; margin-bottom 1rem; letter-spacing -0.05em; }
+        p.subtitle { font-size 1.125rem; color var(--text-secondary); margin-bottom 3rem; line-height 1.6; max-width 600px; }
+
+         Drop Zone 
+        .drop-zone {
+            width 100%;
+            max-width 600px;
+            height 250px;
+            background-color var(--box-bg);
+            border 2px dashed var(--border-color);
+            border-radius 12px;
+            display flex;
+            flex-direction column;
+            align-items center;
+            justify-content center;
+            cursor pointer;
+            transition all 0.2s ease;
+            position relative;
+        }
+        .drop-zone.dragover {
+            border-color var(--accent);
+            background-color rgba(59, 130, 246, 0.1);
+        }
+        .drop-zone input[type=file] {
+            position absolute; width 100%; height 100%; top 0; left 0;
+            opacity 0; cursor pointer;
+        }
+        .icon { font-size 2.5rem; margin-bottom 1rem; color var(--text-secondary); }
+        .drop-title { font-size 1.25rem; font-weight 600; margin-bottom 0.5rem; }
+        .drop-sub { font-size 0.875rem; color var(--text-secondary); }
+
+         Security Anchor 
+        .security-anchor {
+            margin-top 2rem;
+            display flex;
+            align-items center;
+            gap 0.75rem;
+            font-size 0.875rem;
+            color var(--text-secondary);
+            background-color rgba(255, 255, 255, 0.03);
+            padding 0.75rem 1.5rem;
+            border-radius 8px;
+            border 1px solid var(--border-color);
+        }
+    style
+head
+body
+
+    nav
+        div class=logoSchema-Sync span[Beta]spandiv
+        button class=nav-buttonPricingbutton
+    nav
+
+    main
+        h1Format messy supplier CSVs for Shopify in 60 seconds.h1
+        p class=subtitleNo sales calls. No manual mapping. Drop your broken file below and the deterministic AI writes the Python script to fix it instantly.p
+
+        div class=drop-zone id=drop-zone
+            input type=file id=file-input accept=.csv,.xlsx
+            div class=icon📄div
+            div class=drop-titleDrag & Drop your ugliest .CSV herediv
+            div class=drop-subMax file size 50MB. See a perfect 15-row preview for free.div
+        div
+
+        div class=security-anchor
+            span🔒span
+            spanZero-Retention Architecture. Files processed in ephemeral microVMs and instantly destroyed. Zero LLM training on proprietary data.span
+        div
+    main
+
+    script
+         Minimal interaction logic for the drag-and-drop UI
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+         Highlight drop zone on drag over
+        ['dragenter', 'dragover'].forEach(eventName = {
+            dropZone.addEventListener(eventName, (e) = {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+         Remove highlight on drag leave or drop
+        ['dragleave', 'drop'].forEach(eventName = {
+            dropZone.addEventListener(eventName, (e) = {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+         Handle the actual file drop
+        dropZone.addEventListener('drop', (e) = {
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+         Handle click to select file
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length  0) {
+                const file = files[0];
+                 THIS IS WHERE WE STOP TODAY. 
+                 In Step 3, this function will trigger the Artificial Terminal 
+                 and send the file to your backend AI architecture.
+                alert(`File selected ${file.name}. nnThe UI is working. Now we must build the backend.`);
+            }
+        }
+    script
+body
+html
