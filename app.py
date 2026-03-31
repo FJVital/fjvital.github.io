@@ -9,14 +9,11 @@ from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel
 from typing import List
 
-# INTERNAL MODULES
 import database
 import auth
 
-# INITIALIZE APP
 app = FastAPI()
 
-# MASTER CORS CONFIGURATION
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -25,11 +22,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# CLOUD ENVIRONMENT KEYS
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# AWS S3 CONFIGURATION
+# AWS CONFIG
 AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", "schema-engine-bucket-1")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
@@ -40,19 +36,13 @@ s3_client = boto3.client(
     aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY")
 )
 
-# DELAYED IMPORT
 from orchestrator import run_orchestrator
 
-# LOCAL STORAGE (Temp)
 UPLOAD_DIR = "vault"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+if not os.path.exists(UPLOAD_DIR): os.makedirs(UPLOAD_DIR)
 
-# HEALTH CHECK
 @app.get("/")
-@app.head("/")
-async def root():
-    return {"status": "Schema-Sync Backend is Live"}
+async def root(): return {"status": "Schema-Sync Live"}
 
 class LoginRequest(BaseModel):
     username: str
@@ -62,33 +52,9 @@ class LoginRequest(BaseModel):
 async def login(data: LoginRequest):
     user = database.get_user(data.username)
     if not user or not auth.verify_password(data.password, user["hashed_password"]):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    if not user.get("stripe_customer_id"):
-        try:
-            customer = stripe.Customer.create(email=user["username"])
-            database.update_stripe_customer_id(user["username"], customer.id)
-            user["stripe_customer_id"] = customer.id
-        except Exception as e:
-            raise HTTPException(status_code=500, detail="Billing system error.")
-
+        raise HTTPException(status_code=400, detail="Incorrect credentials")
     access_token = auth.create_access_token(data={"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer"}
-
-@app.get("/billing-status")
-async def billing_status(current_user: str = Depends(auth.get_current_user)):
-    user = database.get_user(current_user)
-    if not user or not user.get("stripe_customer_id"):
-        return {"has_card": False}
-    
-    try:
-        payment_methods = stripe.PaymentMethod.list(
-            customer=user["stripe_customer_id"],
-            type="card",
-        )
-        return {"has_card": len(payment_methods.data) > 0}
-    except Exception as e:
-        return {"has_card": False}
 
 @app.post("/quote")
 async def get_quote(file: UploadFile = File(...), current_user: str = Depends(auth.get_current_user)):
@@ -96,171 +62,60 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
     input_path = os.path.join(UPLOAD_DIR, f"input_{job_id}.csv")
     output_path = os.path.join(UPLOAD_DIR, f"output_{job_id}.csv")
 
-    with open(input_path, "wb") as f:
-        f.write(await file.read())
-
+    with open(input_path, "wb") as f: f.write(await file.read())
+    
     row_count = 0
     with open(input_path, "r", encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
         next(reader, None)
-        for _ in reader:
-            row_count += 1
+        for _ in reader: row_count += 1
 
-    success = run_orchestrator(input_path, output_path)
-    if not success:
-        raise HTTPException(status_code=500, detail="AI Orchestrator failed.")
-
-    # --- UPLOAD SECURELY TO AMAZON S3 ---
-    try:
-        s3_key = f"output_{job_id}.csv"
-        s3_client.upload_file(output_path, AWS_BUCKET_NAME, s3_key)
-        print(f"AWS S3: Successfully vaulted {s3_key}")
-    except Exception as e:
-        print(f"AWS S3 UPLOAD FAILED: {str(e)}")
+    if run_orchestrator(input_path, output_path):
+        try:
+            s3_client.upload_file(output_path, AWS_BUCKET_NAME, f"output_{job_id}.csv")
+        except Exception as e: print(f"S3 Error: {e}")
+    
+    total_price = max(5.00, row_count * 0.01111)
+    database.create_job(job_id, current_user, input_path, output_path, int(total_price * 100))
 
     preview_data = []
-    headers = []
     with open(output_path, "r", encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
         headers = next(reader)
         for i, row in enumerate(reader):
-            if i < 20:
-                preview_data.append(row)
-            else:
-                break
-
-    total_price = max(5.00, row_count * 0.01111)
+            if i < 20: preview_data.append(row)
     
-    database.create_job(job_id, input_path, output_path, int(total_price * 100))
-
-    return {
-        "job_id": job_id,
-        "rows_detected": row_count,
-        "total_price_usd": total_price,
-        "preview_headers": headers,
-        "preview_data": preview_data
-    }
-
-@app.post("/vault-card")
-async def vault_card(current_user: str = Depends(auth.get_current_user)):
-    user = database.get_user(current_user)
-    if not user or not user.get("stripe_customer_id"):
-        raise HTTPException(status_code=400, detail="No billing profile found.")
-    
-    try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            mode='setup',
-            customer=user["stripe_customer_id"],
-            success_url="https://fjvital.github.io/schema-sync-engine/?setup=success",
-            cancel_url="https://fjvital.github.io/schema-sync-engine/?setup=cancel",
-        )
-        return {"vault_url": session.url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/checkout/{job_id}")
-async def auto_charge(job_id: str, current_user: str = Depends(auth.get_current_user)):
-    job = database.get_job(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-    
-    user = database.get_user(current_user)
-    if not user or not user.get("stripe_customer_id"):
-        raise HTTPException(status_code=400, detail="No billing profile found.")
-        
-    try:
-        payment_methods = stripe.PaymentMethod.list(
-            customer=user["stripe_customer_id"],
-            type="card",
-        )
-        if not payment_methods.data:
-            raise HTTPException(status_code=400, detail="No card on file. Please add a card via Express Billing.")
-            
-        payment_method_id = payment_methods.data[0].id
-        
-        intent = stripe.PaymentIntent.create(
-            amount=job["price"],
-            currency='usd',
-            customer=user["stripe_customer_id"],
-            payment_method=payment_method_id,
-            off_session=True,
-            confirm=True,
-            metadata={"job_id": job_id}
-        )
-        
-        database.mark_job_paid(job_id)
-        return {"status": "success"}
-        
-    except stripe.error.CardError as e:
-        raise HTTPException(status_code=400, detail=f"Charge declined: {e.user_message}")
-    except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=f"Stripe configuration error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal System Error: {str(e)}")
-
-@app.post("/stripe-webhook")
-async def stripe_webhook(request: Request):
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
-
-    if not webhook_secret:
-        return {"status": "unconfigured"}
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, webhook_secret
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Invalid Stripe signature")
-
-    if event["type"] == "payment_intent.succeeded":
-        intent = event["data"]["object"]
-        job_id = intent.get("metadata", {}).get("job_id")
-        
-        if job_id:
-            database.mark_job_paid(job_id)
-            print(f"WEBHOOK SECURE: Job {job_id} permanently unlocked.")
-
-    return {"status": "success"}
-
-@app.post("/verify-payment/{job_id}")
-async def verify(job_id: str, current_user: str = Depends(auth.get_current_user)):
-    job = database.get_job(job_id)
-    if job and job["paid"]:
-        return {"status": "verified"}
-    raise HTTPException(status_code=404)
+    return {"job_id": job_id, "rows": row_count, "price": total_price, "headers": headers, "preview": preview_data}
 
 @app.get("/download/{job_id}")
-async def download(job_id: str, current_user: str = Depends(auth.get_current_user)):
+async def download(job_id: str, token: str = None):
+    # Check token from URL query string
+    user = auth.get_user_from_token(token)
+    if not user: raise HTTPException(status_code=401)
+
     job = database.get_job(job_id)
     if job and job["paid"]:
         try:
-            # Generate a 5-minute self-destructing download link directly from S3
             s3_key = f"output_{job_id}.csv"
-            presigned_url = s3_client.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': AWS_BUCKET_NAME, 'Key': s3_key},
-                ExpiresIn=300
-            )
+            # Generate link that forces a 'Download' behavior in the browser
+            presigned_url = s3_client.generate_presigned_url('get_object',
+                Params={
+                    'Bucket': AWS_BUCKET_NAME, 
+                    'Key': s3_key,
+                    'ResponseContentDisposition': f'attachment; filename="schema_sync_{job_id}.csv"'
+                }, ExpiresIn=300)
             return RedirectResponse(url=presigned_url)
-        except Exception as e:
-            # Emergency fallback
-            if os.path.exists(job["output_path"]):
-                return FileResponse(job["output_path"], filename="shopify_ready_final.csv")
-            raise HTTPException(status_code=404, detail="File missing from AWS Vault.")
-            
-    raise HTTPException(status_code=402, detail="Payment required")
+        except:
+            return FileResponse(job["output_path"], filename="fallback.csv")
+    raise HTTPException(status_code=402)
 
-# --- AWS DIAGNOSTIC PROBE ---
+# --- AWS PROBE ---
 @app.get("/test-aws")
 async def test_aws():
     try:
-        response = s3_client.list_objects_v2(Bucket=AWS_BUCKET_NAME)
-        return {"status": "SUCCESS", "message": "AWS is connected and the vault is open!"}
-    except Exception as e:
-        return {"status": "BLOCKED", "exact_aws_error": str(e)}
+        s3_client.list_objects_v2(Bucket=AWS_BUCKET_NAME)
+        return {"status": "SUCCESS"}
+    except Exception as e: return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
