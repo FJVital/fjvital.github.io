@@ -2,7 +2,7 @@ fastapi
 uvicorn
 python-multipart
 stripe
-google-genai
+google-generativeai
 python-jose[cryptography]
 passlib[bcrypt]
 boto3
