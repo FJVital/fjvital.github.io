@@ -6,3 +6,4 @@ google-generativeai
 python-jose[cryptography]
 passlib[bcrypt]
 boto3
+bcrypt==3.2.2
