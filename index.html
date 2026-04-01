@@ -24,9 +24,11 @@
         
         <div id="login-section" class="bg-white p-8 rounded-xl shadow-lg border max-w-md mx-auto mt-10">
             <h2 class="text-xl font-bold mb-6 text-center text-gray-700">Secure Partner Login</h2>
-            <input type="text" id="username" placeholder="Username" class="w-full p-3 border rounded mb-4 focus:ring-2 focus:ring-blue-400 outline-none">
-            <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded mb-6 focus:ring-2 focus:ring-blue-400 outline-none">
-            <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition">Enter Pipeline</button>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Username" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                <input type="password" id="password" placeholder="Password" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition">Enter Pipeline</button>
+            </div>
         </div>
 
         <div id="app-interface" class="hidden space-y-8">
@@ -37,7 +39,7 @@
                     <p class="text-gray-500">Drag & Drop CSV here or <span class="text-blue-500 font-bold underline">Browse</span></p>
                     <input type="file" id="file-input" class="hidden" accept=".csv">
                 </div>
-                <div id="file-info" class="mt-4 hidden text-sm font-medium text-blue-600"></div>
+                <div id="file-info" class="mt-4 hidden text-sm font-medium text-blue-600 text-center"></div>
                 <button id="process-btn" onclick="processFile()" class="mt-6 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 disabled:bg-gray-300">Process & Preview Data</button>
             </div>
 
@@ -58,13 +60,13 @@
                         <tbody id="table-body"></tbody>
                     </table>
                 </div>
-                <div class="p-6 bg-gray-50 border-t">
+                <div class="p-6 bg-gray-50 border-t text-center">
                     <button id="checkout-btn" onclick="checkout()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 shadow-lg transition">Confirm 1-Click Payment</button>
                 </div>
             </div>
 
             <div id="success-section" class="hidden bg-green-50 border border-green-200 p-6 rounded-xl text-center">
-                <div class="inline-block p-3 bg-green-100 rounded-full mb-4">✅</div>
+                <div class="text-3xl mb-2">✅</div>
                 <h3 class="text-xl font-bold text-green-700">Payment Verified</h3>
                 <p class="text-green-600 mb-6 italic">Your Shopify CSV is unlocked and vaulted in AWS.</p>
                 <button onclick="downloadFile(currentJobId)" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700">Download Shopify CSV</button>
@@ -82,8 +84,7 @@
                                 <th class="pb-3 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="history-body" class="divide-y">
-                            </tbody>
+                        <tbody id="history-body" class="divide-y"></tbody>
                     </table>
                 </div>
             </div>
@@ -92,33 +93,44 @@
     </div>
 
     <script>
+        // --- CONFIGURATION ---
         const API_BASE_URL = "https://schema-sync-engine.onrender.com";
         let currentJobId = null;
 
-        // --- AUTH LOGIC ---
+        // --- AUTHENTICATION ---
         async function login() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
             
-            const res = await fetch(`${API_BASE_URL}/token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, password: pass })
-            });
+            console.log("DEBUG: Attempting login for", user);
 
-            if (res.ok) {
-                const data = await res.json();
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('username', user);
-                showApp();
-            } else {
-                alert("Access Denied.");
+            try {
+                const res = await fetch(`${API_BASE_URL}/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('username', user);
+                    console.log("DEBUG: Login Successful");
+                    showApp();
+                } else {
+                    const err = await res.json();
+                    console.error("DEBUG: Login Failed", err.detail);
+                    alert("Login Failed: " + err.detail);
+                }
+            } catch (error) {
+                console.error("DEBUG: Connection Error", error);
+                alert("Cannot reach server. Ensure API_BASE_URL is correct.");
             }
         }
 
         function logout() {
             localStorage.clear();
-            location.reload();
+            window.location.reload();
         }
 
         function showApp() {
@@ -129,38 +141,44 @@
             fetchHistory();
         }
 
-        // --- PIPELINE LOGIC ---
+        // --- PROCESSING ---
         async function processFile() {
             const fileInput = document.getElementById('file-input');
-            if (!fileInput.files[0]) return alert("Select a CSV file first.");
+            if (!fileInput.files[0]) return alert("Please select a file.");
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            document.getElementById('process-btn').innerText = "AI Processing...";
-            document.getElementById('process-btn').disabled = true;
+            const btn = document.getElementById('process-btn');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
 
-            const res = await fetch(`${API_BASE_URL}/quote`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                body: formData
-            });
+            try {
+                const res = await fetch(`${API_BASE_URL}/quote`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: formData
+                });
 
-            const data = await res.json();
-            currentJobId = data.job_id;
+                const data = await res.json();
+                currentJobId = data.job_id;
 
-            // Update UI
-            document.getElementById('total-rows').innerText = data.rows;
-            document.getElementById('quote-price').innerText = `$${data.price.toFixed(2)}`;
-            
-            // Build Table
-            const head = document.getElementById('table-head');
-            const body = document.getElementById('table-body');
-            head.innerHTML = `<tr>${data.headers.map(h => `<th class="p-2 border">${h}</th>`).join('')}</tr>`;
-            body.innerHTML = data.preview.map(row => `<tr>${row.map(cell => `<td class="p-2 border text-gray-500">${cell}</td>`).join('')}</tr>`).join('');
+                document.getElementById('total-rows').innerText = data.rows;
+                document.getElementById('quote-price').innerText = `$${data.price.toFixed(2)}`;
+                
+                const head = document.getElementById('table-head');
+                const body = document.getElementById('table-body');
+                head.innerHTML = `<tr>${data.headers.map(h => `<th class="p-2 border">${h}</th>`).join('')}</tr>`;
+                body.innerHTML = data.preview.map(row => `<tr>${row.map(cell => `<td class="p-2 border text-gray-500 font-mono">${cell}</td>`).join('')}</tr>`).join('');
 
-            document.getElementById('preview-section').classList.remove('hidden');
-            document.getElementById('process-btn').classList.add('hidden');
+                document.getElementById('preview-section').classList.remove('hidden');
+                btn.classList.add('hidden');
+            } catch (error) {
+                console.error("Processing error:", error);
+                alert("Error processing file.");
+                btn.disabled = false;
+                btn.innerText = "Process & Preview Data";
+            }
         }
 
         async function checkout() {
@@ -174,39 +192,39 @@
                 document.getElementById('success-section').classList.remove('hidden');
                 fetchHistory();
             } else {
-                alert("Charge failed. Please check your card on file.");
+                alert("Checkout failed.");
             }
         }
 
-        // --- NEW: SECURE DOWNLOAD TRIGGER ---
+        // --- DOWNLOAD & HISTORY ---
         function downloadFile(jobId) {
             const token = localStorage.getItem('token');
-            // This bypasses 'fetch' so the browser can handle the redirect to AWS properly
+            console.log("DEBUG: Redirecting to download for", jobId);
             window.location.href = `${API_BASE_URL}/download/${jobId}?token=${token}`;
         }
 
-        // --- NEW: HISTORY DASHBOARD ---
         async function fetchHistory() {
-            const res = await fetch(`${API_BASE_URL}/my-history`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            const data = await res.json();
-            
-            const tbody = document.getElementById('history-body');
-            tbody.innerHTML = data.history.map(job => `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-4 text-xs text-gray-400 font-mono">${job.created_at.split(' ')[0]}</td>
-                    <td class="py-4 font-mono text-xs text-blue-500">${job.id.substring(0,8)}...</td>
-                    <td class="py-4 text-center">
-                        <span class="px-2 py-1 rounded text-[10px] font-bold ${job.paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                            ${job.paid ? 'PAID' : 'PENDING'}
-                        </span>
-                    </td>
-                    <td class="py-4 text-right">
-                        ${job.paid ? `<button onclick="downloadFile('${job.id}')" class="text-blue-600 hover:underline font-bold">Re-Download</button>` : '-'}
-                    </td>
-                </tr>
-            `).join('');
+            try {
+                const res = await fetch(`${API_BASE_URL}/my-history`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                const tbody = document.getElementById('history-body');
+                tbody.innerHTML = data.history.map(job => `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-4 text-xs text-gray-400 font-mono">${job.created_at.split(' ')[0]}</td>
+                        <td class="py-4 font-mono text-xs text-blue-500">${job.id.substring(0,8)}...</td>
+                        <td class="py-4 text-center">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold ${job.paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${job.paid ? 'PAID' : 'PENDING'}
+                            </span>
+                        </td>
+                        <td class="py-4 text-right">
+                            ${job.paid ? `<button onclick="downloadFile('${job.id}')" class="text-blue-600 hover:underline font-bold">Re-Download</button>` : '-'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { console.error("History fetch error", e); }
         }
 
         // --- UI HELPERS ---
@@ -214,10 +232,11 @@
         const fi = document.getElementById('file-input');
         dz.onclick = () => fi.click();
         fi.onchange = () => {
-            document.getElementById('file-info').innerText = `Ready: ${fi.files[0].name}`;
+            document.getElementById('file-info').innerText = `Selected: ${fi.files[0].name}`;
             document.getElementById('file-info').classList.remove('hidden');
         };
 
+        // AUTO-LOAD
         if (localStorage.getItem('token')) showApp();
     </script>
 </body>
