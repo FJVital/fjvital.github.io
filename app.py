@@ -14,20 +14,26 @@ import auth
 
 app = FastAPI()
 
-# MASTER CORS CONFIGURATION
+# --- 1. HARDENED CORS CONFIGURATION ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=False, 
+    allow_origins=["https://fjvital.github.io"], # Locks it down to your frontend
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# CLOUD ENVIRONMENT KEYS
+# --- 2. GLOBAL PREFLIGHT CATCHER ---
+# This guarantees the server always says "YES" to the browser's security check
+@app.options("/{path:path}")
+async def preflight_handler():
+    return Response(status_code=200)
+
+# --- CLOUD ENVIRONMENT KEYS ---
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# AWS S3 CONFIGURATION
+# --- AWS S3 CONFIGURATION ---
 AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", "schema-engine-bucket-1")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
