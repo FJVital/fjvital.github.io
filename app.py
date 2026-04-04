@@ -32,6 +32,17 @@ async def preflight_handler():
 # --- CLOUD ENVIRONMENT KEYS ---
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
+
+# --- STARTUP AUDIT LOG (verify key identity on every deploy) ---
+_secret_prefix = (stripe.api_key or "")[:12]
+_pub_prefix = (STRIPE_PUBLISHABLE_KEY or "")[:12]
+print(f"[STARTUP] Stripe SECRET key prefix:      {_secret_prefix}...")
+print(f"[STARTUP] Stripe PUBLISHABLE key prefix: {_pub_prefix}...")
+if not stripe.api_key:
+    print("[STARTUP] WARNING: STRIPE_SECRET_KEY is not set!")
+if not STRIPE_PUBLISHABLE_KEY:
+    print("[STARTUP] WARNING: STRIPE_PUBLISHABLE_KEY is not set!")
 
 # --- AWS S3 CONFIGURATION ---
 AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", "schema-engine-bucket-1")
@@ -50,9 +61,22 @@ UPLOAD_DIR = "vault"
 if not os.path.exists(UPLOAD_DIR): 
     os.makedirs(UPLOAD_DIR)
 
+# --- HEALTH CHECK ---
 @app.get("/")
 async def root(): 
     return {"status": "Schema-Sync Live"}
+
+# --- CONFIG ENDPOINT (serves publishable key to frontend safely) ---
+@app.get("/config")
+async def get_config():
+    """
+    Returns the Stripe Publishable Key to the frontend.
+    This keeps the key in one place (Render env vars) instead of hardcoded in index.html.
+    The publishable key is NOT a secret — safe to expose via this endpoint.
+    """
+    if not STRIPE_PUBLISHABLE_KEY:
+        raise HTTPException(status_code=500, detail="Stripe publishable key not configured on server.")
+    return {"publishable_key": STRIPE_PUBLISHABLE_KEY}
 
 # --- AUTHENTICATION & AUTO-REGISTER ---
 @app.post("/token")
@@ -115,7 +139,7 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
     
     return {"job_id": job_id, "rows": row_count, "price": total_price, "headers": headers, "preview": preview_data}
 
-# --- PAYMENT PROCESSING (THE ARCHITECT'S UPGRADE) ---
+# --- PAYMENT PROCESSING ---
 
 # STEP 1: Ask Stripe for a secure Payment Intent
 @app.get("/create-payment-intent/{job_id}")
@@ -132,8 +156,10 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
             currency='usd',
             customer=user["stripe_customer_id"],
         )
+        print(f"[STRIPE] PaymentIntent created: {intent.id} for job {job_id} | amount: {job['price']}")
         return {"client_secret": intent.client_secret}
     except Exception as e:
+        print(f"[STRIPE ERROR] Failed to create PaymentIntent for job {job_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 class VerifyRequest(BaseModel):
@@ -147,12 +173,14 @@ async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = De
 
     try:
         intent = stripe.PaymentIntent.retrieve(req.payment_intent_id)
+        print(f"[STRIPE] Verifying PaymentIntent {intent.id} | status: {intent.status}")
         if intent.status == 'succeeded':
             database.mark_job_paid(job_id)
             return {"status": "success"}
         else:
             raise HTTPException(status_code=400, detail="Payment failed or incomplete")
     except Exception as e:
+        print(f"[STRIPE ERROR] Failed to verify PaymentIntent {req.payment_intent_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 # --- SECURE DOWNLOAD ---
@@ -171,11 +199,13 @@ async def download(job_id: str, token: str = None):
                 ExpiresIn=300)
             return RedirectResponse(url=presigned_url)
         except Exception as e:
+            print(f"[S3 ERROR] Presigned URL failed for job {job_id}: {e}")
             if os.path.exists(job["output_path"]):
                 return FileResponse(job["output_path"], filename=f"schema_sync_fallback_{job_id}.csv")
             
     raise HTTPException(status_code=402, detail="Payment required.")
 
+# --- JOB HISTORY ---
 @app.get("/my-history")
 async def my_history(current_user: str = Depends(auth.get_current_user)):
     history = database.get_user_history(current_user)
