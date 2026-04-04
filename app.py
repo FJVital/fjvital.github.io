@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from typing import List
+from pathlib import Path
 
 import database
 import auth
@@ -18,7 +19,7 @@ app = FastAPI()
 # --- 1. HARDENED CORS CONFIGURATION ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fjvital.github.io"], 
+    allow_origins=["https://fjvital.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,7 +35,7 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
 
-# --- STARTUP AUDIT LOG (verify key identity on every deploy) ---
+# --- STARTUP AUDIT LOG ---
 _secret_prefix = (stripe.api_key or "")[:12]
 _pub_prefix = (STRIPE_PUBLISHABLE_KEY or "")[:12]
 print(f"[STARTUP] Stripe SECRET key prefix:      {_secret_prefix}...")
@@ -58,22 +59,17 @@ s3_client = boto3.client(
 from orchestrator import run_orchestrator
 
 UPLOAD_DIR = "vault"
-if not os.path.exists(UPLOAD_DIR): 
+if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 # --- HEALTH CHECK ---
 @app.get("/")
-async def root(): 
+async def root():
     return {"status": "Schema-Sync Live"}
 
-# --- CONFIG ENDPOINT (serves publishable key to frontend safely) ---
+# --- CONFIG ENDPOINT ---
 @app.get("/config")
 async def get_config():
-    """
-    Returns the Stripe Publishable Key to the frontend.
-    This keeps the key in one place (Render env vars) instead of hardcoded in index.html.
-    The publishable key is NOT a secret — safe to expose via this endpoint.
-    """
     if not STRIPE_PUBLISHABLE_KEY:
         raise HTTPException(status_code=500, detail="Stripe publishable key not configured on server.")
     return {"publishable_key": STRIPE_PUBLISHABLE_KEY}
@@ -82,12 +78,12 @@ async def get_config():
 @app.post("/token")
 async def login(data: OAuth2PasswordRequestForm = Depends()):
     user = database.get_user(data.username)
-    
+
     if not user:
         print(f"User {data.username} not found. Auto-registering...")
         database.create_user(data.username, auth.get_password_hash(data.password))
         user = database.get_user(data.username)
-        
+
         try:
             customer = stripe.Customer.create(email=user["username"])
             database.update_stripe_customer_id(user["username"], customer.id)
@@ -97,7 +93,7 @@ async def login(data: OAuth2PasswordRequestForm = Depends()):
 
     if not auth.verify_password(data.password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Incorrect credentials")
-        
+
     access_token = auth.create_access_token(data={"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -108,9 +104,14 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
     input_path = os.path.join(UPLOAD_DIR, f"input_{job_id}.csv")
     output_path = os.path.join(UPLOAD_DIR, f"output_{job_id}.csv")
 
-    with open(input_path, "wb") as f: 
+    # Capture and sanitize original filename (strip extension)
+    original_name = Path(file.filename).stem if file.filename else "file"
+    original_name = "".join(c for c in original_name if c.isalnum() or c in ("_", "-", " ")).strip()
+    original_name = original_name.replace(" ", "_") or "file"
+
+    with open(input_path, "wb") as f:
         f.write(await file.read())
-    
+
     row_count = 0
     with open(input_path, "r", encoding='utf-8', errors='ignore') as f:
         reader = csv.reader(f)
@@ -120,13 +121,13 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
     if run_orchestrator(input_path, output_path):
         try:
             s3_client.upload_file(output_path, AWS_BUCKET_NAME, f"output_{job_id}.csv")
-        except Exception as e: 
+        except Exception as e:
             print(f"AWS S3 UPLOAD FAILED: {e}")
     else:
         raise HTTPException(status_code=500, detail="AI Orchestrator failed.")
-    
+
     total_price = max(5.00, row_count * 0.01111)
-    database.create_job(job_id, current_user, input_path, output_path, int(total_price * 100))
+    database.create_job(job_id, current_user, input_path, output_path, int(total_price * 100), original_name)
 
     preview_data = []
     headers = []
@@ -136,20 +137,20 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
         for i, row in enumerate(reader):
             if i < 20: preview_data.append(row)
             else: break
-    
+
     return {"job_id": job_id, "rows": row_count, "price": total_price, "headers": headers, "preview": preview_data}
 
 # --- PAYMENT PROCESSING ---
 
-# STEP 1: Ask Stripe for a secure Payment Intent
+# STEP 1: Create Payment Intent
 @app.get("/create-payment-intent/{job_id}")
 async def create_payment_intent(job_id: str, current_user: str = Depends(auth.get_current_user)):
     job = database.get_job(job_id)
     user = database.get_user(current_user)
-    
-    if not job or not user: 
+
+    if not job or not user:
         raise HTTPException(status_code=404, detail="Job or User not found.")
-        
+
     try:
         intent = stripe.PaymentIntent.create(
             amount=job["price"],
@@ -165,7 +166,7 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
 class VerifyRequest(BaseModel):
     payment_intent_id: str
 
-# STEP 2: Verify the card worked before unlocking the file
+# STEP 2: Verify Payment
 @app.post("/verify-payment/{job_id}")
 async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = Depends(auth.get_current_user)):
     job = database.get_job(job_id)
@@ -187,22 +188,32 @@ async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = De
 @app.get("/download/{job_id}")
 async def download(job_id: str, token: str = None):
     user = auth.get_user_from_token(token)
-    if not user: 
+    if not user:
         raise HTTPException(status_code=401, detail="Unauthorized token.")
 
     job = database.get_job(job_id)
     if job and job["paid"]:
+        # Build branded filename: e.g. "inventory_shopify.csv"
+        original_name = job.get("original_filename") or "file"
+        download_filename = f"{original_name}_shopify.csv"
+
         try:
             s3_key = f"output_{job_id}.csv"
-            presigned_url = s3_client.generate_presigned_url('get_object',
-                Params={'Bucket': AWS_BUCKET_NAME, 'Key': s3_key, 'ResponseContentDisposition': f'attachment; filename="schema_sync_{job_id}.csv"'}, 
-                ExpiresIn=300)
+            presigned_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': AWS_BUCKET_NAME,
+                    'Key': s3_key,
+                    'ResponseContentDisposition': f'attachment; filename="{download_filename}"'
+                },
+                ExpiresIn=300
+            )
             return RedirectResponse(url=presigned_url)
         except Exception as e:
             print(f"[S3 ERROR] Presigned URL failed for job {job_id}: {e}")
             if os.path.exists(job["output_path"]):
-                return FileResponse(job["output_path"], filename=f"schema_sync_fallback_{job_id}.csv")
-            
+                return FileResponse(job["output_path"], filename=download_filename)
+
     raise HTTPException(status_code=402, detail="Payment required.")
 
 # --- JOB HISTORY ---
