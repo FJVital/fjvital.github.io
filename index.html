@@ -4,361 +4,590 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>flashfix.io | Fix Your Shopify Files in 60 Seconds</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://js.stripe.com/v3/"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background-color: #080808; color: #fff; min-height: 100vh; }
 
-        .carbon-bg {
-            background-color: #080808;
-            background-image:
-                repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.016) 3px, rgba(255,255,255,0.016) 4px),
-                repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.016) 3px, rgba(255,255,255,0.016) 4px);
-        }
-
-        .glass {
-            background: rgba(10,10,10,0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.07);
-        }
-        .glass-inner {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .t1 { font-size:36px; font-weight:900; color:#fff; line-height:1.15; }
-        .t2 { font-size:24px; font-weight:700; color:#e5e7eb; line-height:1.3; }
-        .t3 { font-size:20px; font-weight:300; color:#9ca3af; line-height:1.6; }
-
-        .brand { font-size:36px; font-weight:900; color:#fff; letter-spacing:-0.02em; }
-        .brand-dot { color:#00FFFF; }
-        .brand-glow { text-shadow: 0 0 30px rgba(0,255,255,0.25), 0 0 60px rgba(0,255,255,0.08); }
-
-        .btn-neon {
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.38);
+        body {
             font-family: 'Inter', sans-serif;
-            font-size: 24px; font-weight: 700;
-            padding: 18px 32px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.18s ease;
-            width: 100%;
-            letter-spacing: 0.05em;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background-color: #f6f5f0;
+            color: #1a1a1a;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
-        .btn-neon:hover { background: rgba(255,255,255,0.02); }
-        .btn-green:hover, .btn-green.active  { border-color:#00FF00; color:#00FF00; box-shadow:0 0 20px rgba(0,255,0,.45),0 0 50px rgba(0,255,0,.15),inset 0 0 20px rgba(0,255,0,.04); }
-        .btn-magenta:hover, .btn-magenta.active { border-color:#FF00FF; color:#FF00FF; box-shadow:0 0 20px rgba(255,0,255,.45),0 0 50px rgba(255,0,255,.15),inset 0 0 20px rgba(255,0,255,.04); }
-        .btn-cyan:hover, .btn-cyan.active    { border-color:#00FFFF; color:#00FFFF; box-shadow:0 0 20px rgba(0,255,255,.45),0 0 50px rgba(0,255,255,.15),inset 0 0 20px rgba(0,255,255,.04); }
 
-        .btn-action {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.12);
-            color: #e5e7eb;
+        /* === TYPOGRAPHY === */
+        .t1 { font-size: 36px; font-weight: 900; color: #1a1a1a; line-height: 1.15; }
+        .t2 { font-size: 24px; font-weight: 700; color: #1a1a1a; line-height: 1.3; }
+        .t3 { font-size: 20px; font-weight: 400; color: #4b5563; line-height: 1.6; }
+
+        /* === BRAND === */
+        .brand { font-size: 28px; font-weight: 900; color: #1a1a1a; letter-spacing: -0.02em; }
+        .brand-dot { color: #16a34a; }
+
+        /* === CARDS === */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .card-inner {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+        }
+
+        /* === BUTTONS === */
+        /* Primary solid black */
+        .btn-primary {
+            background: #1a1a1a;
+            border: 2px solid #1a1a1a;
+            color: #ffffff;
             font-family: 'Inter', sans-serif;
             font-size: 20px; font-weight: 700;
+            padding: 16px 32px;
+            border-radius: 10px;
+            cursor: pointer; width: 100%;
+            transition: all 0.15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            letter-spacing: 0.02em;
+        }
+        .btn-primary:hover:not(:disabled) { background: #333; border-color: #333; }
+        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* Outline button */
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #1a1a1a;
+            color: #1a1a1a;
+            font-family: 'Inter', sans-serif;
+            font-size: 20px; font-weight: 700;
+            padding: 16px 32px;
+            border-radius: 10px;
+            cursor: pointer; width: 100%;
+            transition: all 0.15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            letter-spacing: 0.02em;
+        }
+        .btn-outline:hover:not(:disabled) { background: #1a1a1a; color: #fff; }
+
+        /* Auth buttons — thick border, white text default, color on hover */
+        .btn-auth {
+            background: transparent;
+            border: 2.5px solid #d1d5db;
+            color: #1a1a1a;
+            font-family: 'Inter', sans-serif;
+            font-size: 24px; font-weight: 700;
             padding: 18px 32px;
             border-radius: 10px;
             cursor: pointer; width: 100%;
             transition: all 0.18s ease;
             display: flex; align-items: center; justify-content: center; gap: 10px;
+            letter-spacing: 0.04em;
         }
-        .btn-action:hover:not(:disabled) { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.25); color:#fff; }
-        .btn-action:disabled { opacity:.5; cursor:not-allowed; }
-        .btn-pay { border-color:rgba(0,255,0,.25); color:#00FF00; }
-        .btn-pay:hover:not(:disabled) { border-color:#00FF00; box-shadow:0 0 20px rgba(0,255,0,.3); color:#00FF00; }
+        .btn-login:hover   { border-color: #16a34a; color: #16a34a; background: rgba(22,163,74,0.04); }
+        .btn-create:hover  { border-color: #7c3aed; color: #7c3aed; background: rgba(124,58,237,0.04); }
+        .btn-guest:hover   { border-color: #0284c7; color: #0284c7; background: rgba(2,132,199,0.04); }
 
+        /* Action button (workspace) */
+        .btn-action {
+            background: transparent;
+            border: 2.5px solid #1a1a1a;
+            color: #1a1a1a;
+            font-family: 'Inter', sans-serif;
+            font-size: 20px; font-weight: 700;
+            padding: 16px 32px;
+            border-radius: 10px;
+            cursor: pointer; width: 100%;
+            transition: all 0.15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-action:hover:not(:disabled) { background: #1a1a1a; color: #fff; }
+        .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* Pay button */
+        .btn-pay {
+            background: #16a34a;
+            border: 2px solid #16a34a;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 20px; font-weight: 700;
+            padding: 16px 32px;
+            border-radius: 10px;
+            cursor: pointer; width: 100%;
+            transition: all 0.15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-pay:hover:not(:disabled) { background: #15803d; border-color: #15803d; }
+        .btn-pay:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* === SPINNER === */
         .spinner {
-            display:inline-block; width:16px; height:16px;
-            border:2px solid rgba(255,255,255,0.2);
-            border-top-color:currentColor; border-radius:50%;
-            animation:spin 0.7s linear infinite; flex-shrink:0;
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid rgba(0,0,0,0.15);
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite; flex-shrink: 0;
         }
-        @keyframes spin { to { transform:rotate(360deg); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* === INPUT FIELDS === */
         .field {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff; font-family:'Inter',sans-serif;
-            font-size:20px; font-weight:300;
-            padding:14px 18px; border-radius:10px; width:100%;
-            outline:none; transition:border-color .18s;
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            color: #1a1a1a;
+            font-family: 'Inter', sans-serif;
+            font-size: 20px; font-weight: 400;
+            padding: 14px 18px;
+            border-radius: 10px; width: 100%;
+            outline: none; transition: border-color 0.15s;
         }
-        .field::placeholder { color:rgba(156,163,175,0.45); }
-        .field:focus { border-color:rgba(255,255,255,0.28); }
+        .field::placeholder { color: #9ca3af; }
+        .field:focus { border-color: #1a1a1a; }
 
+        /* === DROP ZONE === */
         .drop-zone {
-            border:2px dashed rgba(255,255,255,0.12);
-            border-radius:14px; transition:all .2s ease; cursor:pointer;
+            border: 2.5px dashed #d1d5db;
+            border-radius: 14px;
+            transition: all 0.18s ease;
+            cursor: pointer;
+            background: #fafafa;
         }
         .drop-zone:hover, .drop-zone.dragover {
-            border-color:rgba(0,255,255,0.4);
-            background:rgba(0,255,255,0.02);
+            border-color: #16a34a;
+            background: rgba(22,163,74,0.03);
         }
 
-        .check-item { opacity:0; transform:translateY(6px); transition:all .4s ease-out; }
-        .check-item.visible { opacity:1; transform:translateY(0); }
-        #progress-bar-fill { transition:width .3s ease; }
+        /* === FILE INFO CARD === */
+        .file-info-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-top: 14px;
+        }
 
-        .preview-table { border-collapse:collapse; width:100%; }
+        /* === CHECKLIST === */
+        .check-item { opacity: 0; transform: translateY(6px); transition: all 0.4s ease-out; }
+        .check-item.visible { opacity: 1; transform: translateY(0); }
+        #progress-bar-fill { transition: width 0.3s ease; }
+
+        /* === PREVIEW TABLE === */
+        .preview-table { border-collapse: collapse; width: 100%; }
         .preview-table th {
-            background:rgba(255,255,255,0.04); color:#6b7280;
-            font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.08em;
-            padding:10px 14px; border-bottom:1px solid rgba(255,255,255,.06);
-            white-space:nowrap; text-align:left;
+            background: #f3f4f6;
+            color: #6b7280;
+            font-weight: 700; font-size: 13px;
+            text-transform: uppercase; letter-spacing: .06em;
+            padding: 12px 18px;
+            border-bottom: 2px solid #e5e7eb;
+            white-space: nowrap; text-align: left;
         }
         .preview-table td {
-            padding:8px 14px; border-bottom:1px solid rgba(255,255,255,.03);
-            color:#d1d5db; white-space:nowrap; font-size:13px;
+            padding: 12px 18px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #374151; white-space: nowrap; font-size: 15px;
         }
-        .preview-table tr:nth-child(even) td { background:rgba(255,255,255,.015); }
+        .preview-table tr:nth-child(even) td { background: #fafafa; }
 
+        /* === SCROLL HINT === */
+        .scroll-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #16a34a;
+            color: #fff;
+            font-size: 13px; font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border: none; font-family: 'Inter', sans-serif;
+        }
+        .scroll-hint:hover { background: #15803d; }
+
+        /* === STEP NUMBERS === */
         .step-num {
-            width:30px; height:30px;
-            border:1px solid rgba(0,255,255,0.35); border-radius:50%;
-            display:flex; align-items:center; justify-content:center;
-            font-size:13px; font-weight:700; color:#00FFFF; flex-shrink:0; margin-top:2px;
+            width: 32px; height: 32px;
+            border: 2.5px solid #1a1a1a;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; color: #1a1a1a;
+            flex-shrink: 0; margin-top: 2px;
         }
 
+        /* === BADGES === */
+        .badge-paid {
+            padding: 4px 12px; border-radius: 99px;
+            font-size: 12px; font-weight: 700;
+            background: #dcfce7; color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+        .badge-pending {
+            padding: 4px 12px; border-radius: 99px;
+            font-size: 12px; font-weight: 700;
+            background: #fef3c7; color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        /* === MODAL === */
         .modal-overlay {
-            position:fixed; inset:0; background:rgba(0,0,0,0.88);
-            backdrop-filter:blur(8px); z-index:1000;
-            display:flex; align-items:center; justify-content:center; padding:24px;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex; align-items: center; justify-content: center; padding: 24px;
         }
         .modal-box {
-            background:rgba(10,10,10,0.98); border:1px solid rgba(255,255,255,0.09);
-            border-radius:20px; max-width:700px; width:100%;
-            max-height:82vh; overflow-y:auto; padding:48px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            max-width: 700px; width: 100%;
+            max-height: 85vh; overflow-y: auto; padding: 48px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         }
-        .modal-box::-webkit-scrollbar { width:4px; }
-        .modal-box::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12); border-radius:2px; }
+        .modal-box::-webkit-scrollbar { width: 4px; }
+        .modal-box::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
 
-        #card-element { padding:16px 18px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:10px; }
+        /* === CARD ELEMENT === */
+        #card-element {
+            padding: 16px 18px;
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+        }
 
-        .badge-paid { padding:3px 10px; border-radius:99px; font-size:11px; font-weight:700; background:rgba(0,255,0,.08); color:#00FF00; border:1px solid rgba(0,255,0,.25); }
-        .badge-pending { padding:3px 10px; border-radius:99px; font-size:11px; font-weight:700; background:rgba(255,150,0,.08); color:#ff9944; border:1px solid rgba(255,150,0,.25); }
+        /* === PAYMENT SUCCESS === */
+        .success-banner {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            border-radius: 14px;
+            padding: 28px;
+            text-align: center;
+        }
 
-        .fade-in { animation:fadeIn .35s ease forwards; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+        /* === FADE IN === */
+        .fade-in { animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 
-        .footer-link { color:#4b5563; text-decoration:none; font-size:15px; transition:color .15s; cursor:pointer; }
-        .footer-link:hover { color:#9ca3af; }
+        /* === NAV === */
+        .workspace-nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
 
-        ::-webkit-scrollbar { width:6px; }
-        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:3px; }
+        /* === FOOTER === */
+        .footer-link {
+            color: #9ca3af; text-decoration: none;
+            font-size: 15px; transition: color 0.15s; cursor: pointer;
+        }
+        .footer-link:hover { color: #4b5563; }
+
+        /* === DIVIDER === */
+        .divider { color: #d1d5db; margin: 0 8px; }
+
+        /* === SCROLLBAR === */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
     </style>
 </head>
-<body class="carbon-bg">
+<body>
 
-<!-- ===== VIEW 1: LANDING ===== -->
-<div id="view-landing" style="min-height:100vh; display:flex; flex-direction:column;">
+<!-- ============================================================ -->
+<!-- VIEW 1: LANDING                                              -->
+<!-- ============================================================ -->
+<div id="view-landing" style="min-height:100vh; display:flex; flex-direction:column; background:#f6f5f0;">
 
-    <nav style="padding:28px 48px; display:flex; justify-content:space-between; align-items:center;">
-        <span class="brand brand-glow">flashfix<span class="brand-dot">.</span>io</span>
+    <nav style="padding:24px 48px; display:flex; justify-content:center; align-items:center; background:#f6f5f0; border-bottom:1px solid #e5e7eb;">
+        <span class="brand">flashfix<span class="brand-dot">.</span>io</span>
     </nav>
 
-    <main style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:48px 24px; max-width:720px; margin:0 auto; width:100%; text-align:center;">
+    <main style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:56px 24px; max-width:700px; margin:0 auto; width:100%; text-align:center;">
 
-        <h1 class="t1" style="margin-bottom:24px;">
+        <h1 class="t1" style="margin-bottom:20px; font-size:36px;">
             Let us fix your Shopify product files,<br>so you can sell more, effortlessly.
         </h1>
-        <p class="t2" style="margin-bottom:16px; color:#d1d5db;">
-            No calls. No manual mapping. No monthly subscriptions — pay as you go.
-        </p>
-        <p class="t3" style="margin-bottom:48px; max-width:540px;">
-            Drop your supplier or product CSV files, and we'll have them clean, organized, and ready to go in 60 seconds.
-            <span style="color:#e5e7eb; font-weight:400;">You only pay if you approve the result.</span>
+
+        <p class="t2" style="margin-bottom:14px; font-weight:700; font-size:24px;">
+            No calls. No manual mapping. No monthly subscriptions, pay as you go.
         </p>
 
-        <div class="glass" style="border-radius:16px; padding:32px 36px; margin-bottom:48px; width:100%; max-width:520px; text-align:left;">
-            <p style="font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; margin-bottom:20px;">Simple, seamless process</p>
-            <div style="display:flex; flex-direction:column; gap:16px;">
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">1</div><p class="t3" style="padding-top:2px;">Upload your file</p></div>
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">2</div><p class="t3" style="padding-top:2px;">Preview the first 20 rows, perfectly cleaned, and see your price</p></div>
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">3</div><p class="t3" style="padding-top:2px;">Approve and pay if satisfied</p></div>
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">4</div><p class="t3" style="padding-top:2px;">Download your polished file</p></div>
+        <p class="t3" style="margin-bottom:48px; max-width:540px; font-size:20px;">
+            Drop your supplier or product CSV files, and we'll have them clean, organized, and ready to go in 60 seconds.
+            <strong style="color:#1a1a1a;">You only pay if you approve the result.</strong>
+        </p>
+
+        <!-- Steps Box -->
+        <div style="border:2.5px solid #1a1a1a; border-radius:16px; padding:32px 36px; margin-bottom:44px; width:100%; max-width:520px; text-align:left; background:#ffffff;">
+            <p style="font-size:16px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6b7280; margin-bottom:22px;">Simple, seamless process</p>
+            <div style="display:flex; flex-direction:column; gap:18px;">
+                <div style="display:flex; align-items:flex-start; gap:14px;">
+                    <div class="step-num">1</div>
+                    <p style="font-size:20px; color:#1a1a1a; font-weight:400; padding-top:4px;">Upload your file</p>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:14px;">
+                    <div class="step-num">2</div>
+                    <p style="font-size:20px; color:#1a1a1a; font-weight:400; padding-top:4px;">Preview the first 20 rows, perfectly cleaned, and see your price</p>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:14px;">
+                    <div class="step-num">3</div>
+                    <p style="font-size:20px; color:#1a1a1a; font-weight:400; padding-top:4px;">Approve and pay if satisfied</p>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:14px;">
+                    <div class="step-num">4</div>
+                    <p style="font-size:20px; color:#1a1a1a; font-weight:400; padding-top:4px;">Download your polished file</p>
+                </div>
             </div>
         </div>
 
-        <div style="width:100%; max-width:380px; display:flex; flex-direction:column; gap:14px;">
-            <button class="btn-neon btn-green" onclick="showAuth('login')">LOGIN</button>
-            <button class="btn-neon btn-magenta" onclick="showAuth('create')">CREATE ACCOUNT</button>
-            <button class="btn-neon btn-cyan" onclick="startGuest()">
+        <!-- Auth Buttons -->
+        <div style="width:100%; max-width:380px; display:flex; flex-direction:column; gap:12px;">
+            <button class="btn-auth btn-login" onclick="showAuth('login')">LOGIN</button>
+            <button class="btn-auth btn-create" onclick="showAuth('create')">CREATE ACCOUNT</button>
+            <button class="btn-auth btn-guest" onclick="startGuest()">
                 <span id="guest-spinner" class="spinner" style="display:none;"></span>
                 <span id="guest-label">GO AS GUEST</span>
             </button>
         </div>
 
-        <p class="t3" style="font-size:16px; margin-top:32px; max-width:480px;">
+        <!-- Privacy note -->
+        <p style="font-size:16px; color:#6b7280; margin-top:28px; max-width:480px; line-height:1.6;">
             Privacy you can trust: Your file is handled securely and disappears after processing.
             Nothing is shared or used for AI training. Members with an account get an extra touch —
             we keep a copy ready for you, always at your fingertips.
         </p>
     </main>
 
-    <footer style="padding:20px 48px; text-align:center; border-top:1px solid rgba(255,255,255,.04);">
-        <span style="color:#4b5563; font-size:15px;">© 2026 flashfix.io</span>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('support');return false;">Support</a>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('privacy');return false;">Privacy</a>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('terms');return false;">Terms</a>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('refund');return false;">Refund</a>
+    <footer style="padding:20px 48px; text-align:center; border-top:1px solid #e5e7eb; background:#f6f5f0;">
+        <p style="margin-bottom:8px; font-size:15px; color:#6b7280;">
+            Questions? Contact us at <a href="mailto:support@flashfix.io" style="color:#1a1a1a; font-weight:600;">support@flashfix.io</a>
+        </p>
+        <p>
+            <span style="color:#9ca3af; font-size:15px;">© 2026 flashfix.io</span>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('support');return false;">Support</a>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('privacy');return false;">Privacy</a>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('terms');return false;">Terms</a>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('refund');return false;">Refund</a>
+        </p>
     </footer>
 </div>
 
 
-<!-- ===== VIEW 2: AUTH ===== -->
-<div id="view-auth" style="display:none; min-height:100vh; flex-direction:column; align-items:center; justify-content:center; padding:48px 24px;">
-    <div class="glass fade-in" style="border-radius:20px; padding:48px 40px; width:100%; max-width:440px;">
-        <h2 id="auth-title" class="t1" style="text-align:center; margin-bottom:8px;">Access Workspace</h2>
-        <p id="auth-subtitle" class="t3" style="text-align:center; margin-bottom:36px; font-size:20px;">Enter your credentials to continue.</p>
+<!-- ============================================================ -->
+<!-- VIEW 2: AUTH                                                 -->
+<!-- ============================================================ -->
+<div id="view-auth" style="display:none; min-height:100vh; flex-direction:column; align-items:center; justify-content:center; padding:48px 24px; background:#f6f5f0;">
+
+    <div class="card fade-in" style="padding:48px 40px; width:100%; max-width:440px;">
+
+        <div style="text-align:center; margin-bottom:32px;">
+            <span class="brand" style="font-size:24px;">flashfix<span class="brand-dot">.</span>io</span>
+        </div>
+
+        <h2 id="auth-title" class="t1" style="text-align:center; margin-bottom:8px; font-size:30px;">Access Workspace</h2>
+        <p id="auth-subtitle" class="t3" style="text-align:center; margin-bottom:32px; font-size:18px;">Enter your credentials to continue.</p>
+
         <div style="display:flex; flex-direction:column; gap:14px;">
             <input type="text" id="username" placeholder="Email address" class="field">
+
             <div id="password-wrap" style="position:relative;">
                 <input type="text" id="password" placeholder="Password" class="field" style="padding-right:52px;">
-                <button type="button" onclick="togglePassword()" style="position:absolute; right:16px; top:50%; transform:translateY(-50%); color:#4b5563; cursor:pointer; background:none; border:none; line-height:0; transition:color .15s;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">
+                <button type="button" onclick="togglePassword()" style="position:absolute; right:16px; top:50%; transform:translateY(-50%); color:#9ca3af; cursor:pointer; background:none; border:none; line-height:0; transition:color .15s;" onmouseover="this.style.color='#4b5563'" onmouseout="this.style.color='#9ca3af'">
                     <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     <svg id="eye-off-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display:none;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.293-3.95M6.634 6.634A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.176 5.191M3 3l18 18"/></svg>
                 </button>
             </div>
-            <button id="auth-btn" onclick="doAuth()" class="btn-neon btn-green active" style="margin-top:6px;">CONTINUE</button>
-            <p id="auth-error" style="text-align:center; color:#ff6b6b; font-size:16px; min-height:22px;"></p>
+
+            <button id="auth-btn" onclick="doAuth()" class="btn-primary" style="margin-top:6px;">CONTINUE</button>
+            <p id="auth-error" style="text-align:center; color:#dc2626; font-size:16px; min-height:22px; font-weight:500;"></p>
         </div>
-        <button onclick="showLanding()" style="margin-top:24px; width:100%; text-align:center; color:#4b5563; font-size:16px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; transition:color .15s;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">← Back to home</button>
+
+        <button onclick="showLanding()" style="margin-top:20px; width:100%; text-align:center; color:#9ca3af; font-size:16px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; transition:color .15s;" onmouseover="this.style.color='#4b5563'" onmouseout="this.style.color='#9ca3af'">← Back to home</button>
     </div>
 </div>
 
 
-<!-- ===== VIEW 3: WORKSPACE ===== -->
-<div id="view-workspace" style="display:none; min-height:100vh; flex-direction:column;">
+<!-- ============================================================ -->
+<!-- VIEW 3: WORKSPACE                                            -->
+<!-- ============================================================ -->
+<div id="view-workspace" style="display:none; min-height:100vh; flex-direction:column; background:#f6f5f0;">
 
-    <nav class="glass" style="padding:16px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.05); border-radius:0;">
-        <span class="brand brand-glow" style="font-size:24px;">flashfix<span class="brand-dot">.</span>io</span>
-        <div style="display:flex; align-items:center; gap:24px;">
-            <span id="display-username" class="t3" style="font-size:16px;"></span>
-            <button onclick="logout()" style="color:#4b5563; font-size:16px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; transition:color .15s;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">Logout</button>
+    <nav class="workspace-nav">
+        <span class="brand">flashfix<span class="brand-dot">.</span>io</span>
+        <div style="display:flex; align-items:center; gap:20px;">
+            <span id="display-username" style="font-size:15px; color:#6b7280;"></span>
+            <button onclick="logout()" style="color:#6b7280; font-size:15px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; font-weight:500; transition:color .15s;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#6b7280'">Logout</button>
         </div>
     </nav>
 
-    <div style="flex:1; max-width:900px; margin:0 auto; width:100%; padding:40px 24px; display:flex; flex-direction:column; gap:28px;">
+    <div style="flex:1; max-width:920px; margin:0 auto; width:100%; padding:36px 24px; display:flex; flex-direction:column; gap:24px;">
 
-        <!-- Upload -->
-        <div class="glass" style="border-radius:18px; padding:36px;">
-            <h3 class="t2" style="margin-bottom:24px;">Upload Raw Supplier CSV</h3>
-            <div id="drop-zone" class="drop-zone" style="padding:52px 24px; text-align:center;">
-                <p class="t3" style="margin-bottom:6px;">Drag & Drop your CSV here</p>
-                <p style="font-size:16px; color:#4b5563;">or <span style="color:#00FFFF; cursor:pointer; font-weight:700;" onclick="document.getElementById('file-input').click()">browse files</span></p>
+        <!-- ===== UPLOAD SECTION ===== -->
+        <div id="upload-section">
+            <h3 class="t2" style="margin-bottom:16px; font-size:24px;">Upload Raw Supplier CSV</h3>
+
+            <div id="drop-zone" class="drop-zone" style="padding:56px 24px; text-align:center;">
+                <p style="font-size:20px; font-weight:500; color:#1a1a1a; margin-bottom:8px;">Drag & Drop your CSV here</p>
+                <p style="font-size:20px; color:#9ca3af;">or <span id="browse-link" style="color:#16a34a; cursor:pointer; font-weight:700; text-decoration:underline;">browse files</span></p>
                 <input type="file" id="file-input" style="display:none;" accept=".csv">
             </div>
-            <p id="file-info" style="display:none; margin-top:14px; text-align:center; color:#00FFFF; font-size:16px; font-weight:700;"></p>
-            <button id="process-btn" onclick="processFile()" class="btn-action" style="margin-top:20px;">Process & Map Data via AI</button>
-            <div id="processing-checklist" style="display:none; margin-top:20px; background:rgba(0,0,0,.65); border:1px solid rgba(255,255,255,.05); border-radius:12px; padding:24px; font-family:monospace;">
-                <p style="color:#fff; font-weight:700; font-size:14px; margin-bottom:14px;">Initializing AI Pipeline...</p>
-                <ul id="checklist-list" style="display:flex; flex-direction:column; gap:8px;"></ul>
-                <div id="progress-bar-container" style="display:none; margin-top:20px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <span style="font-size:13px; color:rgba(0,255,255,.65);">File processing</span>
-                        <span id="progress-label" style="font-size:13px; color:rgba(0,255,255,.65);">0%</span>
-                    </div>
-                    <div style="background:rgba(255,255,255,.07); border-radius:99px; height:5px; overflow:hidden;">
-                        <div id="progress-bar-fill" style="height:5px; border-radius:99px; background:linear-gradient(90deg,#00FFFF,#00FF00); width:0%;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Preview + Payment -->
-        <div id="preview-section" style="display:none;" class="glass fade-in" style="border-radius:18px; overflow:hidden;">
-            <div style="padding:28px 36px; border-bottom:1px solid rgba(255,255,255,.05); display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,.35); border-radius:18px 18px 0 0;">
+            <!-- File info card -->
+            <div id="file-info-card" style="display:none;" class="file-info-card">
+                <div style="width:36px; height:36px; background:#dcfce7; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
                 <div>
-                    <p class="t2">Pipeline Complete ✅</p>
-                    <p class="t3" style="font-size:16px; margin-top:4px;">Your file is now a pristine Shopify CSV.</p>
+                    <p style="font-size:13px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.06em;">Uploaded file</p>
+                    <p id="file-info-name" style="font-size:16px; font-weight:700; color:#16a34a;"></p>
                 </div>
-                <p id="quote-price" class="t1" style="color:#00FF00; white-space:nowrap; text-align:right; margin-left:24px;"></p>
             </div>
-            <div style="padding:24px 28px; border-bottom:1px solid rgba(255,255,255,.04); overflow-x:auto;">
-                <p style="font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#374151; margin-bottom:12px;">First 20 Rows — Mapped Output</p>
-                <table class="preview-table"><thead id="preview-thead"></thead><tbody id="preview-tbody"></tbody></table>
+
+            <button id="process-btn" onclick="processFile()" class="btn-action" style="margin-top:16px;">
+                Process & Map Data via AI
+            </button>
+
+            <!-- Processing checklist -->
+            <div id="processing-checklist" style="display:none; margin-top:16px; background:#1a1a1a; border-radius:12px; padding:28px;">
+                <p style="color:#ffffff; font-weight:700; font-size:18px; margin-bottom:16px; font-family:'Inter',sans-serif;">Initializing AI Pipeline...</p>
+                <ul id="checklist-list" style="display:flex; flex-direction:column; gap:10px;"></ul>
+                <div id="progress-bar-container" style="display:none; margin-top:20px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-size:15px; color:#9ca3af; font-family:'Inter',sans-serif;">File processing</span>
+                        <span id="progress-label" style="font-size:15px; color:#9ca3af; font-family:'Inter',sans-serif;">0%</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,.1); border-radius:99px; height:6px; overflow:hidden;">
+                        <div id="progress-bar-fill" style="height:6px; border-radius:99px; background:linear-gradient(90deg,#16a34a,#22d3ee); width:0%;"></div>
+                    </div>
+                </div>
             </div>
-            <div style="padding:32px 36px;">
-                <div class="glass-inner" style="border-radius:14px; padding:28px; margin-bottom:20px;">
-                    <p class="t2" style="font-size:20px; padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid rgba(255,255,255,.05);">AI Janitor Receipt</p>
-                    <ul style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
-                        <li class="t3">✨ Processed <span id="receipt-rows" style="color:#00FFFF; font-weight:700;"></span> total rows.</li>
-                        <li class="t3">✨ Standardized Shopify Variant structures.</li>
-                        <li class="t3">✨ Vaulted securely to AWS S3.</li>
-                    </ul>
-                    <p class="t2" style="font-size:20px; margin-bottom:12px;">Payment Details</p>
+        </div>
+
+        <!-- ===== PREVIEW + PAYMENT SECTION ===== -->
+        <div id="preview-section" style="display:none;" class="fade-in">
+
+            <!-- Price header -->
+            <div class="card" style="padding:24px 32px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <p class="t2" style="font-size:22px;">Pipeline Complete ✅</p>
+                    <p style="font-size:16px; color:#6b7280; margin-top:4px;">Your file is now a pristine Shopify CSV.</p>
+                </div>
+                <p id="quote-price" style="font-size:28px; font-weight:900; color:#16a34a; white-space:nowrap; margin-left:24px; text-align:right;"></p>
+            </div>
+
+            <!-- Data preview table -->
+            <div class="card" style="margin-bottom:20px; overflow:hidden;">
+                <div style="padding:18px 24px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center;">
+                    <p style="font-size:16px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6b7280;">First 20 Rows — Mapped Output</p>
+                    <button class="scroll-hint" onclick="document.getElementById('preview-table-wrap').scrollBy({left:200,behavior:'smooth'})">
+                        Scroll → 
+                    </button>
+                </div>
+                <div id="preview-table-wrap" style="overflow-x:auto; max-height:380px; overflow-y:auto;">
+                    <table class="preview-table">
+                        <thead id="preview-thead"></thead>
+                        <tbody id="preview-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Receipt + Payment -->
+            <div class="card" style="padding:32px;">
+                <p class="t2" style="font-size:22px; padding-bottom:16px; margin-bottom:20px; border-bottom:1px solid #e5e7eb;">AI flashfix.io Receipt</p>
+
+                <ul style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
+                    <li style="font-size:20px; color:#374151;">✨ Processed <span id="receipt-rows" style="color:#16a34a; font-weight:700;"></span> total rows.</li>
+                    <li style="font-size:20px; color:#374151;">✨ Standardized Shopify Variant structures.</li>
+                    <li id="s3-line" style="font-size:20px; color:#374151; display:none;">✨ Vaulted securely to AWS S3.</li>
+                </ul>
+
+                <!-- Payment area — toggles to success in-place -->
+                <div id="payment-area">
+                    <p style="font-size:18px; font-weight:700; color:#1a1a1a; margin-bottom:12px;">Payment Details</p>
                     <div id="card-element"></div>
-                    <p id="card-errors" style="color:#ff6b6b; font-size:14px; font-weight:700; min-height:20px; margin-top:8px;"></p>
+                    <p id="card-errors" style="color:#dc2626; font-size:14px; font-weight:600; min-height:20px; margin-top:8px;"></p>
+                    <button id="checkout-btn" onclick="checkout()" class="btn-pay" style="margin-top:16px;">
+                        Pay & Unlock CSV
+                    </button>
                 </div>
-                <button id="checkout-btn" onclick="checkout()" class="btn-action btn-pay">Pay & Unlock CSV</button>
+
+                <!-- Success area (hidden until payment verified) -->
+                <div id="success-area" style="display:none;" class="success-banner fade-in">
+                    <div style="font-size:48px; margin-bottom:12px;">✅</div>
+                    <p style="font-size:24px; font-weight:900; color:#16a34a; margin-bottom:8px;">Payment Verified</p>
+                    <p style="font-size:18px; color:#4b5563; margin-bottom:24px;">Your Shopify CSV is unlocked and ready to import.</p>
+                    <div style="display:flex; flex-direction:column; gap:12px; max-width:300px; margin:0 auto;">
+                        <button onclick="downloadFile(currentJobId)" class="btn-pay">Download CSV Now</button>
+                        <button onclick="resetForNewJob()" class="btn-outline">Process Another File</button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Success -->
-        <div id="success-section" style="display:none;" class="glass fade-in" style="border-radius:18px; padding:64px 36px; text-align:center;">
-            <div style="font-size:64px; margin-bottom:20px;">✅</div>
-            <p class="t1" style="color:#00FF00; margin-bottom:12px;">Payment Verified</p>
-            <p class="t3" style="margin-bottom:40px;">Your Shopify CSV is unlocked and ready to import.</p>
-            <div style="display:flex; flex-direction:column; align-items:center; gap:14px; max-width:320px; margin:0 auto;">
-                <button onclick="downloadFile(currentJobId)" class="btn-neon btn-green" style="width:100%;">Download CSV Now</button>
-                <button onclick="resetForNewJob()" class="btn-neon btn-cyan" style="width:100%; font-size:20px;">Process Another File</button>
+        <!-- ===== HISTORY SECTION ===== -->
+        <div id="history-section" style="display:none;" class="card" style="padding:32px;">
+            <div style="padding:28px 32px;">
+                <h3 class="t2" style="margin-bottom:24px;">Cloud Vault History</h3>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom:2px solid #e5e7eb;">
+                                <th style="padding:12px 16px; text-align:left; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6b7280;">Date</th>
+                                <th style="padding:12px 16px; text-align:left; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6b7280;">File</th>
+                                <th style="padding:12px 16px; text-align:center; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6b7280;">Status</th>
+                                <th style="padding:12px 16px; text-align:right; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6b7280;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- History -->
-        <div id="history-section" style="display:none;" class="glass" style="border-radius:18px; padding:36px;">
-            <h3 class="t2" style="margin-bottom:24px;">Cloud Vault History</h3>
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse;">
-                    <thead>
-                        <tr style="border-bottom:1px solid rgba(255,255,255,.06);">
-                            <th style="padding-bottom:12px; text-align:left; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#374151;">Date</th>
-                            <th style="padding-bottom:12px; text-align:left; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#374151;">Job ID</th>
-                            <th style="padding-bottom:12px; text-align:center; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#374151;">Status</th>
-                            <th style="padding-bottom:12px; text-align:right; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#374151;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-body"></tbody>
-                </table>
-            </div>
-        </div>
     </div>
 
-    <footer style="padding:16px 40px; text-align:center; border-top:1px solid rgba(255,255,255,.04);">
-        <span style="color:#374151; font-size:15px;">© 2026 flashfix.io</span>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('support');return false;">Support</a>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('privacy');return false;">Privacy</a>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('terms');return false;">Terms</a>
-        <span style="color:#1f2937; margin:0 8px;">·</span>
-        <a class="footer-link" href="#" onclick="openModal('refund');return false;">Refund</a>
+    <footer style="padding:20px 40px; text-align:center; border-top:1px solid #e5e7eb; background:#f6f5f0;">
+        <p style="margin-bottom:6px; font-size:14px; color:#9ca3af;">
+            Questions? Contact us at <a href="mailto:support@flashfix.io" style="color:#4b5563; font-weight:600;">support@flashfix.io</a>
+        </p>
+        <p>
+            <span style="color:#9ca3af; font-size:14px;">© 2026 flashfix.io</span>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('support');return false;">Support</a>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('privacy');return false;">Privacy</a>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('terms');return false;">Terms</a>
+            <span class="divider">·</span>
+            <a class="footer-link" href="#" onclick="openModal('refund');return false;">Refund</a>
+        </p>
     </footer>
 </div>
 
 
-<!-- ===== MODALS ===== -->
+<!-- ============================================================ -->
+<!-- MODALS                                                       -->
+<!-- ============================================================ -->
 <div id="modal-support" class="modal-overlay" style="display:none;" onclick="closeModalOutside(event,'support')">
     <div class="modal-box">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px;">
-            <h2 class="t1">Support & Contact</h2>
-            <button onclick="closeModal('support')" style="color:#4b5563; font-size:28px; cursor:pointer; background:none; border:none; margin-left:24px;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">✕</button>
+            <h2 class="t1" style="font-size:30px;">Support & Contact</h2>
+            <button onclick="closeModal('support')" style="color:#9ca3af; font-size:24px; cursor:pointer; background:none; border:none; margin-left:24px; line-height:1;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#9ca3af'">✕</button>
         </div>
         <div style="display:flex; flex-direction:column; gap:18px;">
             <p class="t3">If you experience any friction with a file upload, preview generation, payment, or download, our engineering team is here to help.</p>
-            <p class="t3">The most efficient way to reach us is via email at <a href="/cdn-cgi/l/email-protection#681b1d1818071a1c280e04091b000e0110460107" style="color:#00FFFF;"><span class="__cf_email__" data-cfemail="463533363629343206202a27352e202f3e682f29">[email&#160;protected]</span></a>.</p>
-            <p class="t2" style="font-size:20px; margin-top:4px;">To help us diagnose your issue quickly, please include:</p>
+            <p class="t3">The most efficient way to reach us is via email at <a href="mailto:support@flashfix.io" style="color:#16a34a; font-weight:600;">support@flashfix.io</a>.</p>
+            <p class="t2" style="font-size:20px;">To help us diagnose your issue quickly, please include:</p>
             <ul style="display:flex; flex-direction:column; gap:8px; margin-left:8px;">
                 <li class="t3">· The exact name of your uploaded file</li>
                 <li class="t3">· The approximate time you attempted the upload</li>
@@ -366,8 +595,8 @@
                 <li class="t3">· A brief explanation of the problem</li>
                 <li class="t3">· Any screenshots or error messages you received</li>
             </ul>
-            <p class="t3">Our team typically responds within 1 to 3 business days. If your file failed to process, we will investigate, attempt to resolve the error, or process a refund if necessary.</p>
-            <p class="t3">For security matters, email <a href="/cdn-cgi/l/email-protection#62111712120d101622040e03110a040b1a4c0b0d" style="color:#00FFFF;"><span class="__cf_email__" data-cfemail="671412171708151327010b06140f010e1f490e08">[email&#160;protected]</span></a> with "Security" in the subject line.</p>
+            <p class="t3">Our team typically responds within 1 to 3 business days.</p>
+            <p class="t3">For security matters, email <a href="mailto:support@flashfix.io" style="color:#16a34a; font-weight:600;">support@flashfix.io</a> with "Security" in the subject line.</p>
         </div>
     </div>
 </div>
@@ -375,16 +604,16 @@
 <div id="modal-privacy" class="modal-overlay" style="display:none;" onclick="closeModalOutside(event,'privacy')">
     <div class="modal-box">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px;">
-            <h2 class="t1">Privacy Policy</h2>
-            <button onclick="closeModal('privacy')" style="color:#4b5563; font-size:28px; cursor:pointer; background:none; border:none; margin-left:24px;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">✕</button>
+            <h2 class="t1" style="font-size:30px;">Privacy Policy</h2>
+            <button onclick="closeModal('privacy')" style="color:#9ca3af; font-size:24px; cursor:pointer; background:none; border:none; margin-left:24px; line-height:1;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#9ca3af'">✕</button>
         </div>
         <div style="display:flex; flex-direction:column; gap:22px;">
-            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">1. Data We Process</p><p class="t3">We process the files you submit, standard technical metadata (including IP addresses and browser agents), customer support emails, and payment-related metadata provided by our payment gateway.</p></div>
+            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">1. Data We Process</p><p class="t3">We process the files you submit, standard technical metadata, customer support emails, and payment-related metadata provided by our payment gateway.</p></div>
             <div><p class="t2" style="font-size:20px; margin-bottom:8px;">2. How We Utilize Your Data</p><p class="t3">We use this data strictly to format your cleaned output files, generate data previews, maintain the security of our platform, investigate support requests, and comply with legal requirements.</p></div>
             <div><p class="t2" style="font-size:20px; margin-bottom:8px;">3. Ephemeral Storage & Wipes</p><p class="t3">Your uploaded files and processed data are stored on a temporary basis. All data is automatically purged from our servers after a limited retention window, generally 72 hours.</p></div>
             <div><p class="t2" style="font-size:20px; margin-bottom:8px;">4. Payment Security</p><p class="t3">All transactions are securely handled by Stripe. We never store your full payment card details on flashfix.io servers.</p></div>
             <div><p class="t2" style="font-size:20px; margin-bottom:8px;">5. Data Sharing</p><p class="t3">We will never sell your data. We only share information with trusted infrastructure providers strictly to operate and secure the service.</p></div>
-            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">6. Security Measures & Your Rights</p><p class="t3">We deploy strict operational safeguards including HTTPS encryption, secure access controls, and automated file destruction protocols. Contact us anytime at <a href="/cdn-cgi/l/email-protection#364543464659444276505a57455e505f4e185f59" style="color:#00FFFF;"><span class="__cf_email__" data-cfemail="2b585e5b5b44595f6b4d474a58434d4253054244">[email&#160;protected]</span></a>.</p></div>
+            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">6. Security & Your Rights</p><p class="t3">We deploy strict operational safeguards including HTTPS encryption, secure access controls, and automated file destruction. Contact us at <a href="mailto:support@flashfix.io" style="color:#16a34a; font-weight:600;">support@flashfix.io</a>.</p></div>
         </div>
     </div>
 </div>
@@ -392,21 +621,21 @@
 <div id="modal-terms" class="modal-overlay" style="display:none;" onclick="closeModalOutside(event,'terms')">
     <div class="modal-box">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px;">
-            <h2 class="t1">Terms of Service</h2>
-            <button onclick="closeModal('terms')" style="color:#4b5563; font-size:28px; cursor:pointer; background:none; border:none; margin-left:24px;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">✕</button>
+            <h2 class="t1" style="font-size:30px;">Terms of Service</h2>
+            <button onclick="closeModal('terms')" style="color:#9ca3af; font-size:24px; cursor:pointer; background:none; border:none; margin-left:24px; line-height:1;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#9ca3af'">✕</button>
         </div>
         <div style="display:flex; flex-direction:column; gap:22px;">
-            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">1. Acceptable Use</p><p class="t3">flashfix.io must only be used for legal and authorized purposes. You maintain full responsibility for the data you upload, must possess the legal right to process the files you submit, and may not attempt to reverse-engineer or misuse the application.</p></div>
-            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">2. Service & Delivery</p><p class="t3">Our platform allows you to upload supported CSV files, view a processed preview, and pay to unlock the finalized output. Pricing is dynamically displayed before checkout. Service delivery is considered legally complete the moment your processed file becomes available for download.</p></div>
+            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">1. Acceptable Use</p><p class="t3">flashfix.io must only be used for legal and authorized purposes. You maintain full responsibility for the data you upload and may not attempt to reverse-engineer or misuse the application.</p></div>
+            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">2. Service & Delivery</p><p class="t3">Our platform allows you to upload supported CSV files, view a processed preview, and pay to unlock the finalized output. Service delivery is considered legally complete the moment your processed file becomes available for download.</p></div>
             <div>
                 <p class="t2" style="font-size:20px; margin-bottom:8px;">3. Data Vaulting & Storage</p>
                 <ul style="display:flex; flex-direction:column; gap:10px; margin-left:8px; margin-top:8px;">
-                    <li class="t3">· <span style="color:#e5e7eb; font-weight:700;">Guest Users:</span> Data processing is entirely ephemeral. Files are purged within 24 hours of session end.</li>
-                    <li class="t3">· <span style="color:#e5e7eb; font-weight:700;">Registered Members:</span> Finalized files are securely vaulted in AWS cloud, accessible via your Cloud Vault History.</li>
-                    <li class="t3">· <span style="color:#00FFFF; font-weight:700;">Zero AI Training Guarantee:</span> Your data is never used to train or refine AI models.</li>
+                    <li class="t3">· <strong style="color:#1a1a1a;">Guest Users:</strong> Data is entirely ephemeral. Files are purged within 24 hours.</li>
+                    <li class="t3">· <strong style="color:#1a1a1a;">Registered Members:</strong> Finalized files are securely vaulted in AWS cloud via your Cloud Vault History.</li>
+                    <li class="t3">· <strong style="color:#16a34a;">Zero AI Training Guarantee:</strong> Your data is never used to train or refine AI models.</li>
                 </ul>
             </div>
-            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">4. Refunds & Limitations</p><p class="t3">Because flashfix.io provides a free, live data preview prior to payment, refunds are highly restricted. Our maximum liability for any claim will never exceed the specific amount paid for the job in question.</p></div>
+            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">4. Refunds & Limitations</p><p class="t3">Because flashfix.io provides a free, live data preview prior to payment, refunds are highly restricted. Our maximum liability will never exceed the specific amount paid for the job in question.</p></div>
         </div>
     </div>
 </div>
@@ -414,15 +643,15 @@
 <div id="modal-refund" class="modal-overlay" style="display:none;" onclick="closeModalOutside(event,'refund')">
     <div class="modal-box">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px;">
-            <h2 class="t1">Refund Policy</h2>
-            <button onclick="closeModal('refund')" style="color:#4b5563; font-size:28px; cursor:pointer; background:none; border:none; margin-left:24px;" onmouseover="this.style.color='#9ca3af'" onmouseout="this.style.color='#4b5563'">✕</button>
+            <h2 class="t1" style="font-size:30px;">Refund Policy</h2>
+            <button onclick="closeModal('refund')" style="color:#9ca3af; font-size:24px; cursor:pointer; background:none; border:none; margin-left:24px; line-height:1;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#9ca3af'">✕</button>
         </div>
         <div style="display:flex; flex-direction:column; gap:22px;">
             <div><p class="t2" style="font-size:20px; margin-bottom:8px;">1. General Guidelines</p><p class="t3">Because our platform generates a transparent, 20-row data preview before you enter any payment information, refunds on digital deliveries are strictly limited.</p></div>
             <div>
                 <p class="t2" style="font-size:20px; margin-bottom:8px;">2. Eligible Refund Scenarios</p>
                 <ul style="display:flex; flex-direction:column; gap:8px; margin-left:8px; margin-top:8px;">
-                    <li class="t3">· A technical failure on our infrastructure prevents delivery of your finalized file.</li>
+                    <li class="t3">· A technical failure prevents delivery of your finalized file.</li>
                     <li class="t3">· A billing error caused you to be charged multiple times for the same job.</li>
                     <li class="t3">· The downloaded output is completely unusable due to a processing failure on our end.</li>
                 </ul>
@@ -430,57 +659,68 @@
             <div>
                 <p class="t2" style="font-size:20px; margin-bottom:8px;">3. Ineligible Refund Scenarios</p>
                 <ul style="display:flex; flex-direction:column; gap:8px; margin-left:8px; margin-top:8px;">
-                    <li class="t3">· You accidentally uploaded the incorrect file or an outdated version.</li>
-                    <li class="t3">· The result was delivered accurately but your requirements subsequently changed.</li>
-                    <li class="t3">· You successfully downloaded the file but decided you no longer need it.</li>
-                    <li class="t3">· The file processed correctly but does not natively fit your internal workflows.</li>
+                    <li class="t3">· You accidentally uploaded the incorrect file.</li>
+                    <li class="t3">· The result was delivered accurately but your requirements changed.</li>
+                    <li class="t3">· You successfully downloaded the file but no longer need it.</li>
                 </ul>
             </div>
-            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">4. Requesting a Review</p><p class="t3">Email <a href="/cdn-cgi/l/email-protection#f2818782829d8086b2949e93819a949b8adc9b9d" style="color:#00FFFF;"><span class="__cf_email__" data-cfemail="c8bbbdb8b8a7babc88aea4a9bba0aea1b0e6a1a7">[email&#160;protected]</span></a> with your file name, upload time, Job ID, a description of why the file failed, and any screenshots. We aim to review all requests within 1 to 3 business days.</p></div>
+            <div><p class="t2" style="font-size:20px; margin-bottom:8px;">4. Requesting a Review</p><p class="t3">Email <a href="mailto:support@flashfix.io" style="color:#16a34a; font-weight:600;">support@flashfix.io</a> with your file name, upload time, Job ID, and a description of the issue. We aim to review all requests within 1 to 3 business days.</p></div>
         </div>
     </div>
 </div>
 
 
-<!-- ===== JAVASCRIPT ===== -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<!-- ============================================================ -->
+<!-- JAVASCRIPT                                                   -->
+<!-- ============================================================ -->
+<script>
     const API_BASE_URL = "https://schema-sync-engine.onrender.com";
     let currentJobId = null;
     let isGuest = false;
 
+    // === STRIPE (light theme) ===
     const stripe = Stripe('pk_test_51TEdyqEeHDzcsEkxbeF7GwPUDv6PPRdIfvfs0h8fwnAV1WMBwWSJPlC1P9MpNNJcHPuzwevYVYeLMfxNLTqD5HGv00GIHadXpy');
     const elements = stripe.elements();
     const cardElement = elements.create('card', {
         style: {
-            base: { color:'#fff', iconColor:'#6b7280', fontFamily:"'Inter',sans-serif", fontSize:'18px', fontWeight:'300', '::placeholder':{ color:'rgba(156,163,175,0.45)' } },
-            invalid: { color:'#ff6b6b', iconColor:'#ff6b6b' }
+            base: {
+                color: '#1a1a1a',
+                iconColor: '#6b7280',
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '18px',
+                fontWeight: '400',
+                '::placeholder': { color: '#9ca3af' }
+            },
+            invalid: { color: '#dc2626', iconColor: '#dc2626' }
         }
     });
     let isCardMounted = false;
 
-    // === VIEWS ===
+    // === VIEW SWITCHING ===
     function showView(id) {
         ['view-landing','view-auth','view-workspace'].forEach(v => {
-            const el = document.getElementById(v);
-            el.style.display = 'none';
+            document.getElementById(v).style.display = 'none';
         });
-        const target = document.getElementById(id);
-        target.style.display = 'flex';
-        target.style.flexDirection = 'column';
+        const t = document.getElementById(id);
+        t.style.display = 'flex';
+        t.style.flexDirection = 'column';
     }
 
     function showLanding() { isGuest = false; showView('view-landing'); }
 
     function showAuth(path) {
         const cfg = {
-            login:  { title:'Access Workspace',  sub:'Enter your credentials to continue.',           color:'green'   },
-            create: { title:'Create Account',     sub:'Choose an email and password to get started.', color:'magenta' }
+            login:  { title:'Access Workspace',   sub:'Enter your credentials to continue.',            color:'green'  },
+            create: { title:'Create Account',      sub:'Choose an email and password to get started.',  color:'purple' }
         };
         const c = cfg[path];
         document.getElementById('auth-title').innerText = c.title;
         document.getElementById('auth-subtitle').innerText = c.sub;
         const btn = document.getElementById('auth-btn');
-        btn.className = `btn-neon btn-${c.color} active`;
+        btn.className = 'btn-primary';
+        btn.style.cssText = 'margin-top:6px;';
+        if (c.color === 'purple') { btn.style.background='#7c3aed'; btn.style.borderColor='#7c3aed'; }
+        else { btn.style.background='#1a1a1a'; btn.style.borderColor='#1a1a1a'; }
         btn.innerHTML = 'CONTINUE';
         btn.disabled = false;
         document.getElementById('password-wrap').style.display = 'block';
@@ -490,6 +730,7 @@
         showView('view-auth');
     }
 
+    // === GUEST FLOW ===
     async function startGuest() {
         isGuest = true;
         document.getElementById('guest-spinner').style.display = 'inline-block';
@@ -500,6 +741,7 @@
         document.getElementById('guest-label').innerText = 'GO AS GUEST';
     }
 
+    // === PASSWORD TOGGLE ===
     function togglePassword() {
         const f = document.getElementById('password');
         const on = document.getElementById('eye-icon');
@@ -508,6 +750,7 @@
         else { f.type='text'; on.style.display='block'; off.style.display='none'; }
     }
 
+    // === AUTH ===
     async function doAuth() {
         const user = document.getElementById('username').value.trim();
         const pass = document.getElementById('password').value;
@@ -535,7 +778,7 @@
             } else {
                 if (!silent) {
                     const e = await res.json();
-                    document.getElementById('auth-error').innerText = e.detail || 'Login failed.';
+                    document.getElementById('auth-error').innerText = e.detail || 'Login failed. Please try again.';
                     const btn = document.getElementById('auth-btn');
                     btn.disabled = false; btn.innerHTML = 'CONTINUE';
                 }
@@ -543,7 +786,7 @@
             }
         } catch(e) {
             if (!silent) {
-                document.getElementById('auth-error').innerText = 'Cannot reach server.';
+                document.getElementById('auth-error').innerText = 'Cannot reach server. Please try again.';
                 const btn = document.getElementById('auth-btn');
                 btn.disabled = false; btn.innerHTML = 'CONTINUE';
             }
@@ -556,13 +799,18 @@
     function showWorkspace() {
         const guest = localStorage.getItem('isGuest') === 'true';
         document.getElementById('display-username').innerText = guest ? 'Guest Session' : (localStorage.getItem('username') || '');
+
+        // Show/hide S3 vault line based on login status
+        document.getElementById('s3-line').style.display = guest ? 'none' : 'list-item';
+
         const hist = document.getElementById('history-section');
         if (guest) { hist.style.display='none'; }
         else { hist.style.display='block'; fetchHistory(); }
+
         showView('view-workspace');
     }
 
-    // === PROCESS FILE ===
+    // === CHECKLIST ===
     const laborIllusionSteps = [
         "Injesting raw supplier CSV data...",
         "Scrubbing file for 'Ghost Rows'...",
@@ -590,24 +838,34 @@
         document.getElementById('progress-label').innerText = '100%';
     }
 
+    // === PROCESS FILE ===
     async function processFile() {
         const fi = document.getElementById('file-input');
         if (!fi.files[0]) return alert('Please select a file first.');
+
         const btn = document.getElementById('process-btn');
         btn.style.display = 'none';
+
+        // Hide upload section elements except checklist
+        document.getElementById('drop-zone').style.display = 'none';
+        document.getElementById('file-info-card').style.display = 'none';
+
         const cd = document.getElementById('processing-checklist');
         const cl = document.getElementById('checklist-list');
         cd.style.display = 'block'; cl.innerHTML = '';
         document.getElementById('progress-bar-container').style.display = 'none';
         document.getElementById('preview-section').style.display = 'none';
-        document.getElementById('success-section').style.display = 'none';
+
+        // Reset payment/success areas
+        document.getElementById('payment-area').style.display = 'block';
+        document.getElementById('success-area').style.display = 'none';
 
         let si = 0;
         const ilIv = setInterval(() => {
             if (si < laborIllusionSteps.length) {
                 const li = document.createElement('li');
                 li.className = 'check-item';
-                li.style.cssText = 'color:#00FF00; font-size:13px;';
+                li.style.cssText = 'color:#4ade80; font-size:17px; font-family:Inter,sans-serif; font-weight:500;';
                 li.innerHTML = `✔ ${laborIllusionSteps[si]}`;
                 cl.appendChild(li);
                 setTimeout(() => li.classList.add('visible'), 50);
@@ -625,16 +883,16 @@
             const res = await fetch(`${API_BASE_URL}/quote`, {
                 method:'POST',
                 headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` },
-                body:fd
+                body: fd
             });
             const data = await res.json();
             currentJobId = data.job_id;
+
             setTimeout(() => {
                 clearInterval(ilIv);
                 if (progIv) completeProgressBar(progIv);
                 setTimeout(() => {
                     cd.style.display = 'none';
-                    btn.style.display = 'block';
                     renderPreview(data);
                 }, 600);
             }, Math.max(0, (dur + 500) - (si * 1200)));
@@ -642,28 +900,44 @@
             clearInterval(ilIv);
             if (progIv) clearInterval(progIv);
             alert('Error processing file. Please try again.');
+            // Restore upload section
+            document.getElementById('drop-zone').style.display = 'block';
+            document.getElementById('file-info-card').style.display = 'flex';
             btn.style.display = 'block';
             cd.style.display = 'none';
         }
     }
 
+    // === RENDER PREVIEW ===
     function renderPreview(data) {
         document.getElementById('quote-price').innerText = `FULL FILE PRICE  $${data.price.toFixed(2)}`;
         document.getElementById('receipt-rows').innerText = data.rows.toLocaleString();
-        document.getElementById('preview-thead').innerHTML = '<tr>' + data.headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+
+        // Show S3 line only for logged-in users
+        const guest = localStorage.getItem('isGuest') === 'true';
+        document.getElementById('s3-line').style.display = guest ? 'none' : 'list-item';
+
+        document.getElementById('preview-thead').innerHTML =
+            '<tr>' + data.headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
         document.getElementById('preview-tbody').innerHTML = data.preview.map(row =>
-            '<tr>' + row.map(cell=>`<td>${cell||'<span style="color:rgba(255,255,255,.18);">—</span>'}</td>`).join('') + '</tr>'
+            '<tr>' + row.map(cell=>`<td>${cell||'<span style="color:#d1d5db;">—</span>'}</td>`).join('') + '</tr>'
         ).join('');
-        if (!isCardMounted) { cardElement.mount('#card-element'); isCardMounted=true; }
+
+        if (!isCardMounted) {
+            cardElement.mount('#card-element');
+            isCardMounted = true;
+        }
+
         const ps = document.getElementById('preview-section');
         ps.style.display = 'block';
         setTimeout(() => ps.scrollIntoView({ behavior:'smooth', block:'start' }), 50);
     }
 
+    // === CHECKOUT ===
     async function checkout() {
         const btn = document.getElementById('checkout-btn');
         const err = document.getElementById('card-errors');
-        btn.innerHTML = '<span class="spinner"></span> Processing Secure Payment...';
+        btn.innerHTML = '<span class="spinner" style="border-top-color:#fff;"></span> Processing...';
         btn.disabled = true; err.innerText = '';
         try {
             const ir = await fetch(`${API_BASE_URL}/create-payment-intent/${currentJobId}`, {
@@ -671,109 +945,169 @@
             });
             if (!ir.ok) throw new Error('Could not initialize payment.');
             const { client_secret } = await ir.json();
-            const { paymentIntent, error } = await stripe.confirmCardPayment(client_secret, { payment_method:{ card:cardElement } });
-            if (error) { err.innerText=error.message; btn.innerHTML='Pay & Unlock CSV'; btn.disabled=false; return; }
+
+            const { paymentIntent, error } = await stripe.confirmCardPayment(client_secret, {
+                payment_method:{ card:cardElement }
+            });
+
+            if (error) {
+                err.innerText = error.message;
+                btn.innerHTML = 'Pay & Unlock CSV';
+                btn.disabled = false;
+                return;
+            }
+
             const vr = await fetch(`${API_BASE_URL}/verify-payment/${currentJobId}`, {
                 method:'POST',
-                headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}`, 'Content-Type':'application/json' },
-                body:JSON.stringify({ payment_intent_id:paymentIntent.id })
+                headers:{
+                    'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type':'application/json'
+                },
+                body: JSON.stringify({ payment_intent_id: paymentIntent.id })
             });
+
             if (vr.ok) {
-                document.getElementById('preview-section').style.display = 'none';
-                const ss = document.getElementById('success-section');
-                ss.style.display = 'block';
-                ss.scrollIntoView({ behavior:'smooth' });
+                // In-place transition: hide payment area, show success area
+                document.getElementById('payment-area').style.display = 'none';
+                document.getElementById('success-area').style.display = 'block';
+                document.getElementById('success-area').scrollIntoView({ behavior:'smooth', block:'center' });
                 if (!isGuest) fetchHistory();
-            } else { throw new Error('Payment verification failed. Please contact support.'); }
-        } catch(e) { err.innerText=e.message; btn.innerHTML='Pay & Unlock CSV'; btn.disabled=false; }
+            } else {
+                throw new Error('Payment verification failed. Please contact support.');
+            }
+        } catch(e) {
+            err.innerText = e.message;
+            btn.innerHTML = 'Pay & Unlock CSV';
+            btn.disabled = false;
+        }
     }
 
     function downloadFile(jobId) {
         window.location.href = `${API_BASE_URL}/download/${jobId}?token=${localStorage.getItem('token')}`;
     }
 
+    // === HISTORY ===
     async function fetchHistory() {
         try {
-            const res = await fetch(`${API_BASE_URL}/my-history`, { headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` } });
+            const res = await fetch(`${API_BASE_URL}/my-history`, {
+                headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` }
+            });
             const data = await res.json();
             const tb = document.getElementById('history-body');
             if (!data.history || data.history.length === 0) {
-                tb.innerHTML = `<tr><td colspan="4" style="padding:28px 0; text-align:center; color:#374151; font-size:16px;">No jobs yet. Upload your first file above.</td></tr>`;
+                tb.innerHTML = `<tr><td colspan="4" style="padding:28px 16px; text-align:center; color:#9ca3af; font-size:16px;">No jobs yet. Upload your first file above.</td></tr>`;
                 return;
             }
             tb.innerHTML = data.history.map(j => `
-                <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
-                    <td style="padding:16px 0; font-size:14px; color:#4b5563; font-family:monospace;">${j.created_at.split(' ')[0]}</td>
-                    <td style="padding:16px 0; font-size:14px; color:#00FFFF; font-family:monospace;">${j.job_id.substring(0,8)}...</td>
-                    <td style="padding:16px 0; text-align:center;"><span class="${j.paid?'badge-paid':'badge-pending'}">${j.paid?'PAID':'PENDING'}</span></td>
-                    <td style="padding:16px 0; text-align:right;">${j.paid?`<button onclick="downloadFile('${j.job_id}')" style="color:#00FFFF;font-size:14px;font-weight:700;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Re-Download</button>`:'<span style="color:#374151;font-size:14px;">—</span>'}</td>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:16px; font-size:15px; color:#6b7280;">${j.created_at.split(' ')[0]}</td>
+                    <td style="padding:16px; font-size:15px; color:#1a1a1a; font-weight:600;">${j.original_filename ? j.original_filename + '_shopify.csv' : j.job_id.substring(0,8)+'...'}</td>
+                    <td style="padding:16px; text-align:center;">
+                        <span class="${j.paid?'badge-paid':'badge-pending'}">${j.paid?'PAID':'PENDING'}</span>
+                    </td>
+                    <td style="padding:16px; text-align:right;">
+                        ${j.paid
+                            ? `<button onclick="downloadFile('${j.job_id}')" style="color:#16a34a;font-size:15px;font-weight:700;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Re-Download</button>`
+                            : `<button onclick="resumePayment('${j.job_id}')" style="color:#d97706;font-size:15px;font-weight:700;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Complete Payment</button>`
+                        }
+                    </td>
                 </tr>`).join('');
         } catch(e) { console.error('History error', e); }
     }
 
-    function openModal(n) { document.getElementById(`modal-${n}`).style.display='flex'; document.body.style.overflow='hidden'; }
-    function closeModal(n) { document.getElementById(`modal-${n}`).style.display='none'; document.body.style.overflow=''; }
-    function closeModalOutside(e, n) { if (e.target===document.getElementById(`modal-${n}`)) closeModal(n); }
+    // === RESUME PAYMENT FROM HISTORY ===
+    function resumePayment(jobId) {
+        currentJobId = jobId;
+        // Show preview section with payment area
+        document.getElementById('preview-section').style.display = 'block';
+        document.getElementById('payment-area').style.display = 'block';
+        document.getElementById('success-area').style.display = 'none';
+        document.getElementById('quote-price').innerText = 'Resume Payment';
+        document.getElementById('receipt-rows').innerText = '—';
+        // Mount card if needed
+        if (!isCardMounted) {
+            cardElement.mount('#card-element');
+            isCardMounted = true;
+        }
+        document.getElementById('preview-section').scrollIntoView({ behavior:'smooth', block:'start' });
+    }
 
     // === RESET FOR NEW JOB ===
     function resetForNewJob() {
         currentJobId = null;
 
-        // Hide result panels
-        document.getElementById('success-section').style.display = 'none';
-        document.getElementById('preview-section').style.display  = 'none';
+        // Show upload section back
+        document.getElementById('drop-zone').style.display = 'block';
+        document.getElementById('process-btn').style.display = 'block';
 
-        // Reset file input and info label
-        const fi = document.getElementById('file-input');
-        fi.value = '';
-        const info = document.getElementById('file-info');
-        info.innerText = '';
-        info.style.display = 'none';
+        // Reset file info
+        document.getElementById('file-input').value = '';
+        document.getElementById('file-info-card').style.display = 'none';
+        document.getElementById('file-info-name').innerText = '';
 
-        // Reset checklist + progress bar
+        // Hide preview and success
+        document.getElementById('preview-section').style.display = 'none';
+        document.getElementById('payment-area').style.display = 'block';
+        document.getElementById('success-area').style.display = 'none';
+
+        // Reset checklist + progress
         document.getElementById('checklist-list').innerHTML = '';
         document.getElementById('processing-checklist').style.display = 'none';
         document.getElementById('progress-bar-container').style.display = 'none';
         document.getElementById('progress-bar-fill').style.width = '0%';
         document.getElementById('progress-label').innerText = '0%';
 
-        // Reset payment button and errors
+        // Reset payment
         const btn = document.getElementById('checkout-btn');
         btn.innerHTML = 'Pay & Unlock CSV';
         btn.disabled = false;
         document.getElementById('card-errors').innerText = '';
 
-        // Unmount Stripe card so it can be re-mounted fresh on next job
+        // Unmount Stripe for fresh re-mount on next job
         cardElement.unmount();
         isCardMounted = false;
 
-        // Show process button and scroll to top
-        document.getElementById('process-btn').style.display = 'block';
         window.scrollTo({ top:0, behavior:'smooth' });
     }
 
-    // Drop zone
+    // === MODALS ===
+    function openModal(n) { document.getElementById(`modal-${n}`).style.display='flex'; document.body.style.overflow='hidden'; }
+    function closeModal(n) { document.getElementById(`modal-${n}`).style.display='none'; document.body.style.overflow=''; }
+    function closeModalOutside(e, n) { if (e.target===document.getElementById(`modal-${n}`)) closeModal(n); }
+
+    // === DROP ZONE (fix: single click using browse-link only) ===
     const dz = document.getElementById('drop-zone');
-    const fi2 = document.getElementById('file-input');
-    dz.addEventListener('click', e => { if (e.target!==fi2) fi2.click(); });
+    const fi = document.getElementById('file-input');
+    const browseLink = document.getElementById('browse-link');
+
+    // Only the "browse files" text triggers the file picker — not the whole zone
+    browseLink.addEventListener('click', e => { e.stopPropagation(); fi.click(); });
+
+    dz.addEventListener('click', e => {
+        // Allow click only if not on browse-link (already handled above)
+        if (e.target !== browseLink) fi.click();
+    });
+
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
     dz.addEventListener('drop', e => {
         e.preventDefault(); dz.classList.remove('dragover');
         if (e.dataTransfer.files[0]) {
-            fi2.files = e.dataTransfer.files;
-            const info = document.getElementById('file-info');
-            info.innerText = `✓ ${e.dataTransfer.files[0].name}`;
-            info.style.display = 'block';
+            fi.files = e.dataTransfer.files;
+            showFileInfo(e.dataTransfer.files[0].name);
         }
     });
-    fi2.addEventListener('change', () => {
-        const info = document.getElementById('file-info');
-        info.innerText = `✓ ${fi2.files[0].name}`;
-        info.style.display = 'block';
+
+    fi.addEventListener('change', () => {
+        if (fi.files[0]) showFileInfo(fi.files[0].name);
     });
 
-    // Auto-login
+    function showFileInfo(name) {
+        document.getElementById('file-info-name').innerText = name;
+        document.getElementById('file-info-card').style.display = 'flex';
+    }
+
+    // === AUTO-LOGIN ===
     if (localStorage.getItem('token')) {
         isGuest = localStorage.getItem('isGuest') === 'true';
         showWorkspace();
