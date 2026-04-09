@@ -19,7 +19,13 @@ app = FastAPI()
 # --- 1. HARDENED CORS CONFIGURATION ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fjvital.github.io"],
+    allow_origins=[
+        "https://fjvital.github.io", 
+        "https://flashfix.io", 
+        "https://www.flashfix.io",
+        "http://localhost:5500", 
+        "http://127.0.0.1:5500"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
