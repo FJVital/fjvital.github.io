@@ -63,8 +63,8 @@ def run_orchestrator(input_file, output_file):
 
         # MODEL CASCADE: try primary first, fall back on 503/UNAVAILABLE
         models_to_try = [
-            'gemini-2.5-flash-preview-04-17',
-            'gemini-2.0-flash-lite-001',
+            'gemini-2.5-flash',
+            'gemini-2.5-flash-lite',
         ]
 
         response = None
