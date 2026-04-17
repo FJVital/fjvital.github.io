@@ -277,15 +277,28 @@
             border-bottom: 2px solid var(--clr-border);
             white-space: nowrap; text-align: left;
         }
-        .preview-table td {
+                .preview-table td {
             padding: 12px 18px;
             border-bottom: 1px solid var(--clr-border-light);
             color: var(--clr-text-body);
             white-space: nowrap; font-size: 15px;
+            /* NEW: Force long URLs to stay small */
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+        
+        /* NEW: If the AI renders a picture, make it a neat thumbnail */
+        .preview-table td img {
+            max-width: 40px;
+            max-height: 40px;
+            border-radius: 4px;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+        
         .preview-table tr:nth-child(even) td { background: var(--clr-bg); }
         .preview-table tr:hover td { background: var(--clr-accent-pale); transition: background 0.12s; }
-
         /* === SCROLL BUTTON === */
         .scroll-btn {
             display: inline-flex; align-items: center; gap: 6px;
