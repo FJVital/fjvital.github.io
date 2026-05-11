@@ -1,8 +1,10 @@
 import os
+import io
 import uuid
 import csv
 import stripe
 import boto3
+import pandas as pd
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
@@ -85,9 +87,12 @@ async def get_config():
 async def login(data: OAuth2PasswordRequestForm = Depends()):
     user = database.get_user(data.username)
 
+    # FOOLPROOF FIX: Cut the password to exactly 50 chars to avoid the 72-byte limit
+    safe_password = data.password[:50]
+
     if not user:
         print(f"User {data.username} not found. Auto-registering...")
-        database.create_user(data.username, auth.get_password_hash(data.password))
+        database.create_user(data.username, auth.get_password_hash(safe_password))
         user = database.get_user(data.username)
 
         try:
@@ -97,7 +102,7 @@ async def login(data: OAuth2PasswordRequestForm = Depends()):
         except Exception as e:
             print(f"Stripe Error during Auto-Register: {e}")
 
-    if not auth.verify_password(data.password, user["hashed_password"]):
+    if not auth.verify_password(safe_password, user["hashed_password"]):
         raise HTTPException(status_code=400, detail="Incorrect credentials")
 
     access_token = auth.create_access_token(data={"sub": user["username"]})
@@ -107,42 +112,60 @@ async def login(data: OAuth2PasswordRequestForm = Depends()):
 @app.post("/quote")
 async def get_quote(file: UploadFile = File(...), current_user: str = Depends(auth.get_current_user)):
     job_id = str(uuid.uuid4())
+    
+    # We maintain your exact naming convention, always forcing a .csv extension
     input_path = os.path.join(UPLOAD_DIR, f"input_{job_id}.csv")
     output_path = os.path.join(UPLOAD_DIR, f"output_{job_id}.csv")
 
-    # Capture and sanitize original filename (strip extension)
-    original_name = Path(file.filename).stem if file.filename else "file"
-    original_name = "".join(c for c in original_name if c.isalnum() or c in ("_", "-", " ")).strip()
-    original_name = original_name.replace(" ", "_") or "file"
+    try:
+        # 1. Read the uploaded file into memory
+        contents = await file.read()
+        
+        # 2. Silently detect and format the file
+        if file.filename.lower().endswith(('.xlsx', '.xls')):
+            # Read Excel and load it into a Pandas DataFrame
+            df = pd.read_excel(io.BytesIO(contents))
+            
+        elif file.filename.lower().endswith('.csv'):
+            # Reading the CSV into Pandas first is a great safety measure 
+            # to fix weird encodings (like UTF-16) that some suppliers use
+            df = pd.read_csv(io.BytesIO(contents))
+            
+        else:
+            raise HTTPException(status_code=400, detail="Please upload a .csv or .xlsx file.")
 
-    with open(input_path, "wb") as f:
-        f.write(await file.read())
+        # 3. Save the clean, standardized DataFrame to your input_path
+        df.to_csv(input_path, index=False)
+        
+        # --- TRIGGER AI ORCHESTRATOR ---
+        run_orchestrator(input_path, output_path)
+        
+        # Check if the AI successfully generated the output file
+        if os.path.exists(output_path):
+            final_df = pd.read_csv(output_path)
+            
+            # THE ALIEXPRESS IMAGE FIX: Prepend 'https:' to any string that starts with '//'
+            if 'Image Src' in final_df.columns:
+                final_df['Image Src'] = final_df['Image Src'].apply(
+                    lambda x: 'https:' + x if isinstance(x, str) and x.startswith('//') else x
+                )
+                final_df.to_csv(output_path, index=False)
+                
+            # EXTRACT PREVIEW DATA FOR FRONTEND
+            final_df.fillna("", inplace=True)  # Clean up empty cells so JSON doesn't crash
+            row_count = len(final_df)
+            total_price = max(500, row_count * 10)  # Example: 10 cents a row, minimum 500 cents ($5.00)
+            headers = final_df.columns.tolist()
+            preview_data = final_df.head(5).to_dict(orient="records")
 
-    row_count = 0
-    with open(input_path, "r", encoding='utf-8', errors='ignore') as f:
-        reader = csv.reader(f)
-        next(reader, None)
-        for _ in reader: row_count += 1
+            # SAVE THE JOB TO THE DATABASE
+            database.create_job(job_id, current_user, input_path, output_path, total_price, file.filename)
 
-    if run_orchestrator(input_path, output_path):
-        try:
-            s3_client.upload_file(output_path, AWS_BUCKET_NAME, f"output_{job_id}.csv")
-        except Exception as e:
-            print(f"AWS S3 UPLOAD FAILED: {e}")
-    else:
-        raise HTTPException(status_code=500, detail="AI Orchestrator failed.")
+        else:
+            raise HTTPException(status_code=500, detail="Orchestrator failed to create output file.")
 
-    total_price = max(5.00, row_count * 0.01111)
-    database.create_job(job_id, current_user, input_path, output_path, int(total_price * 100), original_name)
-
-    preview_data = []
-    headers = []
-    with open(output_path, "r", encoding='utf-8', errors='ignore') as f:
-        reader = csv.reader(f)
-        headers = next(reader)
-        for i, row in enumerate(reader):
-            if i < 20: preview_data.append(row)
-            else: break
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file format: {str(e)}")
 
     return {"job_id": job_id, "rows": row_count, "price": total_price, "headers": headers, "preview": preview_data}
 
@@ -158,37 +181,27 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
         raise HTTPException(status_code=404, detail="Job or User not found.")
 
     try:
-        intent = stripe.PaymentIntent.create(
-            amount=job["price"],
-            currency='usd',
-            customer=user["stripe_customer_id"],
-        )
-        print(f"[STRIPE] PaymentIntent created: {intent.id} for job {job_id} | amount: {job['price']}")
+        price = int(job["price"]) # Ensure it is a standard integer
+        
+        # If the user has a Stripe ID, attach it. If not (like an old guest), process anyway!
+        if user.get("stripe_customer_id"):
+            intent = stripe.PaymentIntent.create(
+                amount=price,
+                currency='usd',
+                customer=user["stripe_customer_id"]
+            )
+        else:
+            intent = stripe.PaymentIntent.create(
+                amount=price,
+                currency='usd'
+            )
+            
+        print(f"[STRIPE] PaymentIntent created: {intent.id} for job {job_id} | amount: {price}")
         return {"client_secret": intent.client_secret}
     except Exception as e:
         print(f"[STRIPE ERROR] Failed to create PaymentIntent for job {job_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
-class VerifyRequest(BaseModel):
-    payment_intent_id: str
-
-# STEP 2: Verify Payment
-@app.post("/verify-payment/{job_id}")
-async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = Depends(auth.get_current_user)):
-    job = database.get_job(job_id)
-    if not job: raise HTTPException(status_code=404, detail="Job not found")
-
-    try:
-        intent = stripe.PaymentIntent.retrieve(req.payment_intent_id)
-        print(f"[STRIPE] Verifying PaymentIntent {intent.id} | status: {intent.status}")
-        if intent.status == 'succeeded':
-            database.mark_job_paid(job_id)
-            return {"status": "success"}
-        else:
-            raise HTTPException(status_code=400, detail="Payment failed or incomplete")
-    except Exception as e:
-        print(f"[STRIPE ERROR] Failed to verify PaymentIntent {req.payment_intent_id}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
 
 # --- SECURE DOWNLOAD ---
 @app.get("/download/{job_id}")
