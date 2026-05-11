@@ -113,52 +113,49 @@ async def login(data: OAuth2PasswordRequestForm = Depends()):
 async def get_quote(file: UploadFile = File(...), current_user: str = Depends(auth.get_current_user)):
     job_id = str(uuid.uuid4())
     
-    # We maintain your exact naming convention, always forcing a .csv extension
     input_path = os.path.join(UPLOAD_DIR, f"input_{job_id}.csv")
     output_path = os.path.join(UPLOAD_DIR, f"output_{job_id}.csv")
 
     try:
-        # 1. Read the uploaded file into memory
         contents = await file.read()
         
-        # 2. Silently detect and format the file
         if file.filename.lower().endswith(('.xlsx', '.xls')):
-            # Read Excel and load it into a Pandas DataFrame
             df = pd.read_excel(io.BytesIO(contents))
-            
         elif file.filename.lower().endswith('.csv'):
-            # Reading the CSV into Pandas first is a great safety measure 
-            # to fix weird encodings (like UTF-16) that some suppliers use
             df = pd.read_csv(io.BytesIO(contents))
-            
         else:
             raise HTTPException(status_code=400, detail="Please upload a .csv or .xlsx file.")
 
-        # 3. Save the clean, standardized DataFrame to your input_path
         df.to_csv(input_path, index=False)
         
         # --- TRIGGER AI ORCHESTRATOR ---
         run_orchestrator(input_path, output_path)
         
-        # Check if the AI successfully generated the output file
         if os.path.exists(output_path):
             final_df = pd.read_csv(output_path)
             
-            # THE ALIEXPRESS IMAGE FIX: Prepend 'https:' to any string that starts with '//'
+            # --- ALIEXPRESS IMAGE FIX ---
             if 'Image Src' in final_df.columns:
                 final_df['Image Src'] = final_df['Image Src'].apply(
                     lambda x: 'https:' + x if isinstance(x, str) and x.startswith('//') else x
                 )
-                final_df.to_csv(output_path, index=False)
+
+            # --- SHOPIFY HEADER GUARD ---
+            # Ensures Shopify doesn't reject the file for missing optional columns
+            mandatory_headers = ["Option2 Name", "Option2 Value", "Option3 Name", "Option3 Value"]
+            for header in mandatory_headers:
+                if header not in final_df.columns:
+                    final_df[header] = ""
+            
+            final_df.to_csv(output_path, index=False)
                 
-            # EXTRACT PREVIEW DATA FOR FRONTEND
-            final_df.fillna("", inplace=True)  # Clean up empty cells so JSON doesn't crash
+            # EXTRACT PREVIEW DATA
+            final_df.fillna("", inplace=True) 
             row_count = len(final_df)
-            total_price = max(500, row_count * 10)  # Example: 10 cents a row, minimum 500 cents ($5.00)
+            total_price = max(500, row_count * 10) 
             headers = final_df.columns.tolist()
             preview_data = final_df.head(5).to_dict(orient="records")
 
-            # SAVE THE JOB TO THE DATABASE
             database.create_job(job_id, current_user, input_path, output_path, total_price, file.filename)
 
         else:
@@ -171,7 +168,6 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
 
 # --- PAYMENT PROCESSING ---
 
-# STEP 1: Create Payment Intent
 @app.get("/create-payment-intent/{job_id}")
 async def create_payment_intent(job_id: str, current_user: str = Depends(auth.get_current_user)):
     job = database.get_job(job_id)
@@ -181,9 +177,8 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
         raise HTTPException(status_code=404, detail="Job or User not found.")
 
     try:
-        price = int(job["price"]) # Ensure it is a standard integer
+        price = int(job["price"]) 
         
-        # If the user has a Stripe ID, attach it. If not (like an old guest), process anyway!
         if user.get("stripe_customer_id"):
             intent = stripe.PaymentIntent.create(
                 amount=price,
@@ -205,7 +200,6 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
 class VerifyRequest(BaseModel):
     payment_intent_id: str
 
-# STEP 2: Verify Payment
 @app.post("/verify-payment/{job_id}")
 async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = Depends(auth.get_current_user)):
     job = database.get_job(job_id)
@@ -213,7 +207,6 @@ async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = De
 
     try:
         intent = stripe.PaymentIntent.retrieve(req.payment_intent_id)
-        print(f"[STRIPE] Verifying PaymentIntent {intent.id} | status: {intent.status}")
         if intent.status == 'succeeded':
             database.mark_job_paid(job_id)
             return {"status": "success"}
@@ -233,7 +226,6 @@ async def download(job_id: str, token: str = None):
 
     job = database.get_job(job_id)
     if job and job["paid"]:
-        # Build branded filename: e.g. "inventory_shopify.csv"
         original_name = job.get("original_filename") or "file"
         download_filename = f"{original_name}_shopify.csv"
 
