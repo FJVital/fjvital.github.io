@@ -281,8 +281,20 @@
             padding: 12px 18px;
             border-bottom: 1px solid var(--clr-border-light);
             color: var(--clr-text-body);
-            white-space: nowrap; font-size: 15px;
+            white-space: nowrap; 
+            font-size: 15px;
+            max-width: 300px; /* NEW: Stop columns from stretching infinitely */
+            overflow: hidden;
+            text-overflow: ellipsis; /* NEW: Add "..." to long text */
         }
+        
+        /* NEW: Just in case an image sneaks through, force it to be tiny */
+        .preview-table img {
+            max-height: 30px;
+            width: auto;
+            border-radius: 4px;
+        }
+
         .preview-table tr:nth-child(even) td { background: var(--clr-bg); }
         .preview-table tr:hover td { background: var(--clr-accent-pale); transition: background 0.12s; }
 
@@ -517,7 +529,7 @@
         </div>
         <div style="width:120px; display:flex; align-items:center; justify-content:flex-end; gap:16px;">
             <span id="display-username" style="font-size:13px; color: white; font-family:'Inter',sans-serif;"></span>
-            <button onclick="logout()" style=color:#ffffff;; font-size:14px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; font-weight:600; transition:color .15s;" onmouseover="this.style.color='var(--clr-accent)'" onmouseout="this.style.color='var(--clr-text-head)'">Logout</button>
+            <button onclick="logout()" style="color:#ffffff; font-size:14px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; font-weight:600; transition:color .15s;" onmouseover="this.style.color='var(--clr-accent)'" onmouseout="this.style.color='var(--clr-text-head)'">Logout</button>
         </div>
     </div>
 
@@ -746,7 +758,6 @@
         </div>
     </div>
 </div>
-
 
 <script>
     const API_BASE_URL = "http://127.0.0.1:10000";
@@ -994,11 +1005,20 @@
         document.getElementById('preview-thead').innerHTML =
             '<tr>' + data.headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
 
-        // FIX: Read AI Dictionary instead of crashing on Arrays
+        // FIX: Escape HTML tags so product descriptions don't render giant images!
         document.getElementById('preview-tbody').innerHTML = data.preview.map(row =>
             '<tr>' + data.headers.map(h => {
-                const cellValue = row[h];
-                return `<td>${cellValue || '<span style="color:var(--clr-accent-mid);">—</span>'}</td>`;
+                let cellValue = row[h];
+                if (cellValue) {
+                    // Turn raw HTML into safe text so images don't explode
+                    let safeText = String(cellValue).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    
+                    // Cut long description text down so the table stays neat
+                    if (safeText.length > 120) safeText = safeText.substring(0, 120) + '...';
+                    return `<td>${safeText}</td>`;
+                } else {
+                    return `<td><span style="color:var(--clr-accent-mid);">—</span></td>`;
+                }
             }).join('') + '</tr>'
         ).join('');
 
