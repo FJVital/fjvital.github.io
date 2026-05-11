@@ -277,28 +277,15 @@
             border-bottom: 2px solid var(--clr-border);
             white-space: nowrap; text-align: left;
         }
-                .preview-table td {
+        .preview-table td {
             padding: 12px 18px;
             border-bottom: 1px solid var(--clr-border-light);
             color: var(--clr-text-body);
             white-space: nowrap; font-size: 15px;
-            /* NEW: Force long URLs to stay small */
-            max-width: 250px;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
-        
-        /* NEW: If the AI renders a picture, make it a neat thumbnail */
-        .preview-table td img {
-            max-width: 40px;
-            max-height: 40px;
-            border-radius: 4px;
-            object-fit: cover;
-            vertical-align: middle;
-        }
-        
         .preview-table tr:nth-child(even) td { background: var(--clr-bg); }
         .preview-table tr:hover td { background: var(--clr-accent-pale); transition: background 0.12s; }
+
         /* === SCROLL BUTTON === */
         .scroll-btn {
             display: inline-flex; align-items: center; gap: 6px;
@@ -530,7 +517,7 @@
         </div>
         <div style="width:120px; display:flex; align-items:center; justify-content:flex-end; gap:16px;">
             <span id="display-username" style="font-size:13px; color: white; font-family:'Inter',sans-serif;"></span>
-            <button onclick="logout()" style="color:#ffffff; font-size:14px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; font-weight:600; transition:color .15s;" onmouseover="this.style.color='var(--clr-accent)'" onmouseout="this.style.color='var(--clr-text-head)'">Logout</button>
+            <button onclick="logout()" style=color:#ffffff;; font-size:14px; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; font-weight:600; transition:color .15s;" onmouseover="this.style.color='var(--clr-accent)'" onmouseout="this.style.color='var(--clr-text-head)'">Logout</button>
         </div>
     </div>
 
@@ -762,12 +749,12 @@
 
 
 <script>
-    const API_BASE_URL = "https://schema-sync-engine.onrender.com";
+    const API_BASE_URL = "http://127.0.0.1:10000";
     let currentJobId = null;
     let currentFilename = '';
     let isGuest = false;
 
-    // === STRIPE (Remember to swap this to pk_live_...) ===
+    // === STRIPE ===
     const stripe = Stripe('pk_test_51TEdyqEeHDzcsEkxbeF7GwPUDv6PPRdIfvfs0h8fwnAV1WMBwWSJPlC1P9MpNNJcHPuzwevYVYeLMfxNLTqD5HGv00GIHadXpy');
     const elements = stripe.elements();
     const cardElement = elements.create('card', {
@@ -916,7 +903,6 @@
         const fi = document.getElementById('file-input');
         if (!fi.files[0]) return alert('Please select a file first.');
 
-        // File size check (50MB)
         if (fi.files[0].size > 50 * 1024 * 1024) {
             return alert('File exceeds the 50 MB maximum size. Please upload a smaller file.');
         }
@@ -992,10 +978,9 @@
 
     // === RENDER PREVIEW ===
     function renderPreview(data) {
-        // Price
-        document.getElementById('quote-price').innerText = `$${data.price.toFixed(2)}`;
+        // FIX: Divide by 100 to convert Stripe cents to dollars
+        document.getElementById('quote-price').innerText = `$${(data.price / 100).toFixed(2)}`;
 
-        // Filename in header: Vibrant Indigo dynamic text, Deep Slate fixed text
         const fname = currentFilename || 'Your file';
         document.getElementById('preview-filename').innerHTML =
             `<span style="color:var(--clr-accent); font-weight:700;">${fname}</span> <span style="color:var(--clr-text-head);">is now a pristine Shopify CSV.</span>`;
@@ -1005,10 +990,16 @@
         const guest = localStorage.getItem('isGuest') === 'true';
         document.getElementById('s3-line').style.display = guest ? 'none' : 'list-item';
 
+        document.getElementById('preview-table-wrap').style.display = 'block';
         document.getElementById('preview-thead').innerHTML =
             '<tr>' + data.headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+
+        // FIX: Read AI Dictionary instead of crashing on Arrays
         document.getElementById('preview-tbody').innerHTML = data.preview.map(row =>
-            '<tr>' + row.map(cell=>`<td>${cell||'<span style="color:var(--clr-accent-mid);">—</span>'}</td>`).join('') + '</tr>'
+            '<tr>' + data.headers.map(h => {
+                const cellValue = row[h];
+                return `<td>${cellValue || '<span style="color:var(--clr-accent-mid);">—</span>'}</td>`;
+            }).join('') + '</tr>'
         ).join('');
 
         if (!isCardMounted) { cardElement.mount('#card-element'); isCardMounted=true; }
@@ -1073,21 +1064,25 @@
                     <td style="padding:16px; text-align:right;">
                         ${j.paid
                             ? `<button onclick="downloadFile('${j.job_id}')" style="color:var(--clr-accent);font-size:16px;font-weight:700;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Re-Download</button>`
-                            : `<button onclick="resumePayment('${j.job_id}')" style="color:#d97706;font-size:16px;font-weight:700;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Complete Payment</button>`
+                            : `<button onclick="resumePayment('${j.job_id}', ${j.price})" style="color:#d97706;font-size:16px;font-weight:700;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Complete Payment</button>`
                         }
                     </td>
                 </tr>`).join('');
         } catch(e) { console.error('History error', e); }
     }
 
-    function resumePayment(jobId) {
+    function resumePayment(jobId, price) {
         currentJobId = jobId;
         document.getElementById('preview-section').style.display = 'block';
         document.getElementById('payment-area').style.display = 'block';
         document.getElementById('success-area').style.display = 'none';
-        document.getElementById('quote-price').innerText = '';
+        
+        // FIX: Display the price pulled directly from the history database
+        document.getElementById('quote-price').innerText = price ? `$${(price / 100).toFixed(2)}` : '';
         document.getElementById('preview-filename').innerHTML = '<span style="color:var(--clr-text-head);">Resume your payment below.</span>';
         document.getElementById('receipt-rows').innerText = '—';
+        document.getElementById('preview-table-wrap').style.display = 'none'; // Hide table since history doesn't store preview rows
+        
         if (!isCardMounted) { cardElement.mount('#card-element'); isCardMounted=true; }
         document.getElementById('preview-section').scrollIntoView({ behavior:'smooth', block:'start' });
     }
