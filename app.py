@@ -202,6 +202,27 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
         print(f"[STRIPE ERROR] Failed to create PaymentIntent for job {job_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+class VerifyRequest(BaseModel):
+    payment_intent_id: str
+
+# STEP 2: Verify Payment
+@app.post("/verify-payment/{job_id}")
+async def verify_payment(job_id: str, req: VerifyRequest, current_user: str = Depends(auth.get_current_user)):
+    job = database.get_job(job_id)
+    if not job: raise HTTPException(status_code=404, detail="Job not found")
+
+    try:
+        intent = stripe.PaymentIntent.retrieve(req.payment_intent_id)
+        print(f"[STRIPE] Verifying PaymentIntent {intent.id} | status: {intent.status}")
+        if intent.status == 'succeeded':
+            database.mark_job_paid(job_id)
+            return {"status": "success"}
+        else:
+            raise HTTPException(status_code=400, detail="Payment failed or incomplete")
+    except Exception as e:
+        print(f"[STRIPE ERROR] Failed to verify PaymentIntent {req.payment_intent_id}: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 # --- SECURE DOWNLOAD ---
 @app.get("/download/{job_id}")
