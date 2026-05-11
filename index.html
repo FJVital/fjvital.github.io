@@ -987,7 +987,7 @@
         }
     }
 
-    // === RENDER PREVIEW ===
+    /// === RENDER PREVIEW ===
     function renderPreview(data) {
         // FIX: Divide by 100 to convert Stripe cents to dollars
         document.getElementById('quote-price').innerText = `$${(data.price / 100).toFixed(2)}`;
@@ -1005,15 +1005,20 @@
         document.getElementById('preview-thead').innerHTML =
             '<tr>' + data.headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
 
-        // FIX: Escape HTML tags so product descriptions don't render giant images!
+        // FIX: Render tiny thumbnails for Image columns, but keep HTML descriptions safe!
         document.getElementById('preview-tbody').innerHTML = data.preview.map(row =>
             '<tr>' + data.headers.map(h => {
                 let cellValue = row[h];
                 if (cellValue) {
-                    // Turn raw HTML into safe text so images don't explode
-                    let safeText = String(cellValue).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    let colName = h.toLowerCase();
                     
-                    // Cut long description text down so the table stays neat
+                    // If it's an image column, draw a tiny thumbnail picture
+                    if ((colName === 'image src' || colName === 'variant image') && String(cellValue).startsWith('http')) {
+                        return `<td style="text-align: center;"><img src="${cellValue}" style="max-height: 40px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></td>`;
+                    }
+                    
+                    // For all other columns, safely escape HTML text
+                    let safeText = String(cellValue).replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     if (safeText.length > 120) safeText = safeText.substring(0, 120) + '...';
                     return `<td>${safeText}</td>`;
                 } else {
