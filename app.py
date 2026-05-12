@@ -149,7 +149,7 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
             final_df.to_csv(output_path, index=False)
                 
             # EXTRACT PREVIEW DATA
-            final_df.fillna("", inplace=True) 
+            final_df = final_df.astype(object).fillna("") 
             row_count = len(final_df)
             total_price = max(500, row_count * 10) 
             headers = final_df.columns.tolist()
