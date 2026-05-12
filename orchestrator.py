@@ -3,6 +3,7 @@ import csv
 import json
 import time
 from google import genai
+from google.genai import types
 
 # INITIALIZE AI CLIENT (new unified SDK)
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -73,9 +74,14 @@ def run_orchestrator(input_file, output_file):
         for model_name in models_to_try:
             try:
                 print(f"[ORCHESTRATOR] Trying model: {model_name}")
+                # Use the new SDK config to FORCE structured JSON output
                 response = client.models.generate_content(
                     model=model_name,
-                    contents=prompt
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.1
+                    )
                 )
                 print(f"[ORCHESTRATOR] Success with model: {model_name}")
                 break
@@ -92,19 +98,8 @@ def run_orchestrator(input_file, output_file):
         if response is None:
             raise last_error
 
-        # --- BULLETPROOF JSON PARSER ---
+        # --- STRUCTURED JSON PARSER ---
         json_text = response.text.strip()
-        
-        # Aggressively hunt for the first { and the last }
-        start_idx = json_text.find('{')
-        end_idx = json_text.rfind('}')
-        
-        if start_idx != -1 and end_idx != -1:
-            # Slice out only the valid JSON dictionary
-            json_text = json_text[start_idx:end_idx+1]
-        else:
-            raise ValueError(f"No JSON dictionary found in AI response: {json_text}")
-
         mapping_dict = json.loads(json_text)
         # -----------------------------------
 
