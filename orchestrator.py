@@ -92,17 +92,21 @@ def run_orchestrator(input_file, output_file):
         if response is None:
             raise last_error
 
-        # PARSE AI JSON RESPONSE SAFELY
+        # --- BULLETPROOF JSON PARSER ---
         json_text = response.text.strip()
-        if json_text.startswith("```json"):
-            json_text = json_text[7:]
-        elif json_text.startswith("```"):
-            json_text = json_text[3:]
+        
+        # Aggressively hunt for the first { and the last }
+        start_idx = json_text.find('{')
+        end_idx = json_text.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            # Slice out only the valid JSON dictionary
+            json_text = json_text[start_idx:end_idx+1]
+        else:
+            raise ValueError(f"No JSON dictionary found in AI response: {json_text}")
 
-        if json_text.endswith("```"):
-            json_text = json_text[:-3]
-
-        mapping_dict = json.loads(json_text.strip())
+        mapping_dict = json.loads(json_text)
+        # -----------------------------------
 
         # TRANSFORM AND SAVE
         with open(output_file, 'w', newline='', encoding='utf-8') as f:
