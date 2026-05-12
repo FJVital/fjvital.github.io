@@ -979,7 +979,10 @@
         } catch(e) {
             clearInterval(ilIv);
             if (progIv) clearInterval(progIv);
-            alert('Error processing file. Please try again.');
+            
+            // --- WE CHANGED THIS LINE TO REVEAL THE PYTHON ERROR ---
+            alert('SERVER CRASH LOG: ' + e.message); 
+            
             document.getElementById('drop-zone').style.display = 'block';
             document.getElementById('file-info-card').style.display = 'flex';
             btn.style.display = 'block';
