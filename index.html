@@ -15,14 +15,14 @@
             /* Sleek Data-Expert Palette */
             --clr-bg:             #f8fafc;
             --clr-surface:        #ffffff;
-            --clr-accent:         #4f46e5;
-            --clr-accent-dark:    #4338ca;
-            --clr-accent-deeper:  #3730a3;
-            --clr-accent-pale:    #e0e7ff;
-            --clr-accent-soft:    #c7d2fe;
-            --clr-accent-mid:     #a5b4fc;
+            --clr-accent:         #000000;
+            --clr-accent-dark:    #222222;
+            --clr-accent-deeper:  #111111;
+            --clr-accent-pale:    #f3f4f6;
+            --clr-accent-soft:    #e5e7eb;
+            --clr-accent-mid:     #9ca3af;
             --clr-text-head:      #1f2937;
-            --clr-text-body:      #4b5563;
+            --clr-text-body:      #000000;
             --clr-text-muted:     #94a3b8;
             --clr-border:         #e2e8f0;
             --clr-border-light:   #f1f5f9;
@@ -245,7 +245,7 @@
         .drop-zone.dragover {
             border-color: var(--clr-accent-dark);
             border-style: solid;
-            background: linear-gradient(160deg, var(--clr-accent-soft) 0%, #e0e7ff 100%);
+            background: linear-gradient(160deg, var(--clr-accent-soft) 0%, #f3f4f6 100%);
             box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.12), var(--shadow-hover);
             transform: scale(1.008);
         }
@@ -790,8 +790,8 @@
 
     function showAuth(path) {
         const cfg = {
-            login:  { title:'Access Workspace',  sub:'Enter your credentials to continue.',           btnBg:'#4f46e5' },
-            create: { title:'Create Account',     sub:'Choose an email and password to get started.', btnBg:'#4f46e5' }
+            login:  { title:'Access Workspace',  sub:'Enter your credentials to continue.',           btnBg:'#000000' },
+            create: { title:'Create Account',     sub:'Choose an email and password to get started.', btnBg:'#000000' }
         };
         const c = cfg[path];
         document.getElementById('auth-title').innerText = c.title;
@@ -981,7 +981,7 @@
             if (progIv) clearInterval(progIv);
             
             // --- WE CHANGED THIS LINE TO REVEAL THE PYTHON ERROR ---
-            alert('SERVER CRASH LOG: ' + e.message); 
+            alert(e.message); 
             
             document.getElementById('drop-zone').style.display = 'block';
             document.getElementById('file-info-card').style.display = 'flex';
@@ -1050,9 +1050,18 @@
             if (!ir.ok) throw new Error('Could not initialize payment.');
             const { client_secret } = await ir.json();
 
+            // --- STRIPE RECEIPT FIX: Grab email and pass to billing_details ---
+            const userEmail = localStorage.getItem('username') || '';
             const { paymentIntent, error } = await stripe.confirmCardPayment(client_secret, {
-                payment_method:{ card:cardElement }
+                payment_method: { 
+                    card: cardElement,
+                    billing_details: { 
+                        email: userEmail 
+                    }
+                }
             });
+            // ------------------------------------------------------------------
+
             if (error) { err.innerText=error.message; btn.innerHTML='Format & Download File'; btn.disabled=false; return; }
 
             const vr = await fetch(`${API_BASE_URL}/verify-payment/${currentJobId}`, {
