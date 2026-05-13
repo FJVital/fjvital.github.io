@@ -1,19 +1,25 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import pandas as pd
-import io
 import os
+import io
 import uuid
+import csv
 import stripe
-import time
+import boto3
+import pandas as pd
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Response, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from typing import List
+from pathlib import Path
 
-from orchestrator import run_orchestrator
 import database
 import auth
+from orchestrator import run_orchestrator
 
 app = FastAPI()
 
+# --- 1. HARDENED CORS CONFIGURATION ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -28,13 +34,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# STRIPE SETUP (Live Keys)
+# --- 2. GLOBAL PREFLIGHT CATCHER ---
+@app.options("/{path:path}")
+async def preflight_handler():
+    return Response(status_code=200)
+
+# --- CLOUD ENVIRONMENT KEYS ---
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
-    print(f"[STARTUP] Stripe SECRET key prefix: {STRIPE_SECRET_KEY[:8]}...")
-else:
-    print("[STARTUP] WARNING: STRIPE_SECRET_KEY missing.")
+
+# AWS S3 SETUP
+AWS_BUCKET_NAME = os.environ.get("AWS_BUCKET_NAME", "schema-engine-bucket-1")
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+    region_name=os.environ.get("AWS_REGION", "us-east-1")
+)
 
 UPLOAD_DIR = "temp_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -44,13 +61,9 @@ def health_check():
     return {"status": "Schema-Sync Live"}
 
 # --- AUTHENTICATION ---
-
-class LoginRequest(BaseModel):
-    email: str
-
 @app.post("/token")
-async def login(req: LoginRequest):
-    email = req.email.strip().lower()
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    email = form_data.username.strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
         
@@ -63,7 +76,6 @@ async def login(req: LoginRequest):
     return {"access_token": token, "token_type": "bearer"}
 
 # --- CSV PROCESSING ---
-
 @app.post("/quote")
 async def get_quote(file: UploadFile = File(...), current_user: str = Depends(auth.get_current_user)):
     job_id = str(uuid.uuid4())
@@ -107,7 +119,7 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
             
             final_df.to_csv(output_path, index=False)
                 
-            # EXTRACT PREVIEW DATA
+            # EXTRACT PREVIEW DATA (Float64 Fix Applied)
             final_df = final_df.astype(object).fillna("")
             row_count = len(final_df)
             total_price = max(500, row_count * 10) 
@@ -127,7 +139,6 @@ async def get_quote(file: UploadFile = File(...), current_user: str = Depends(au
     return {"job_id": job_id, "rows": row_count, "price": total_price, "headers": headers, "preview": preview_data}
 
 # --- PAYMENT PROCESSING ---
-
 @app.get("/create-payment-intent/{job_id}")
 async def create_payment_intent(job_id: str, current_user: str = Depends(auth.get_current_user)):
     job = database.get_job(job_id)
@@ -158,36 +169,53 @@ async def create_payment_intent(job_id: str, current_user: str = Depends(auth.ge
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# --- FILE RETRIEVAL ---
-
-@app.post("/confirm-payment/{job_id}")
-async def confirm_payment(job_id: str, current_user: str = Depends(auth.get_current_user)):
+# --- FILE RETRIEVAL & VERIFICATION ---
+@app.post("/verify-payment/{job_id}")
+async def verify_payment(job_id: str, request: Request, current_user: str = Depends(auth.get_current_user)):
     job = database.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
     database.update_job_status(job_id, "paid")
-    return {"status": "success", "download_url": f"{app.title}/download/{job_id}"} 
+    return {"status": "success"} 
 
 @app.get("/download/{job_id}")
-async def download_file(job_id: str):
+async def download(job_id: str, token: str = None):
+    # Authenticate token if provided
+    if token:
+        user = auth.get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=401, detail="Unauthorized token.")
+
     job = database.get_job(job_id)
     
-    if not job or job.get("status") != "paid":
-        raise HTTPException(status_code=403, detail="File not paid for or does not exist.")
-
-    output_path = job["output_path"]
-    if not os.path.exists(output_path):
-        raise HTTPException(status_code=404, detail="File not found on server.")
-
-    # Generates a presigned URL valid for 1 hour
-    download_url = database.generate_presigned_url(output_path)
+    # Check if job is paid (handles both dict styles based on your DB)
+    is_paid = job and (job.get("status") == "paid" or job.get("paid") == True)
     
-    if download_url:
-        return {"download_url": download_url}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to generate download link.")
+    if is_paid:
+        original_name = job.get("original_filename", "file")
+        download_filename = f"{original_name}_shopify.csv"
 
+        try:
+            s3_key = f"output_{job_id}.csv"
+            presigned_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': AWS_BUCKET_NAME,
+                    'Key': s3_key,
+                    'ResponseContentDisposition': f'attachment; filename="{download_filename}"'
+                },
+                ExpiresIn=300
+            )
+            return RedirectResponse(url=presigned_url)
+        except Exception as e:
+            print(f"[S3 ERROR] Presigned URL failed for job {job_id}: {e}")
+            if os.path.exists(job["output_path"]):
+                return FileResponse(job["output_path"], filename=download_filename)
+
+    raise HTTPException(status_code=402, detail="Payment required.")
+
+# --- JOB HISTORY ---
 @app.get("/my-history")
 async def get_history(current_user: str = Depends(auth.get_current_user)):
     jobs = database.get_user_history(current_user)
