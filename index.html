@@ -837,12 +837,15 @@
         await doLogin(user, pass, false);
     }
 
+    // === AUTHENTICATION ===
     async function doLogin(email, password, silent) {
-        const fd = new URLSearchParams();
-        fd.append('username', email);
-        fd.append('password', password);
         try {
-            const res = await fetch(`${API_BASE_URL}/token`, { method:'POST', body:fd });
+            const res = await fetch(`${API_BASE_URL}/token`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: email, password: password || '' })
+            });
+
             if (res.ok) {
                 const data = await res.json();
                 localStorage.setItem('token', data.access_token);
@@ -860,7 +863,7 @@
             }
         } catch(e) {
             if (!silent) {
-                document.getElementById('auth-error').innerText = 'Cannot reach server.';
+                document.getElementById('auth-error').innerText = 'Network error. Please try again.';
                 const btn = document.getElementById('auth-btn');
                 btn.disabled = false; btn.innerHTML = 'CONTINUE';
             }
