@@ -8,7 +8,6 @@ import pandas as pd
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from typing import List
 from pathlib import Path
@@ -34,11 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 2. GLOBAL PREFLIGHT CATCHER ---
-@app.options("/{path:path}")
-async def preflight_handler():
-    return Response(status_code=200)
-
 # --- CLOUD ENVIRONMENT KEYS ---
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 if STRIPE_SECRET_KEY:
@@ -61,9 +55,13 @@ def health_check():
     return {"status": "Schema-Sync Live"}
 
 # --- AUTHENTICATION ---
+class LoginRequest(BaseModel):
+    username: str
+    password: str = ""
+
 @app.post("/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    email = form_data.username.strip().lower()
+async def login(req: LoginRequest):
+    email = req.username.strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="Email is required")
         
