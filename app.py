@@ -68,7 +68,8 @@ async def login(req: LoginRequest):
     user = database.get_user(email)
     if not user:
         print(f"User {email} not found. Auto-registering...")
-        database.create_user(email)
+        # THE FIX: We are now passing the password to the database!
+        database.create_user(email, req.password)
         
     token = auth.create_access_token(data={"sub": email})
     return {"access_token": token, "token_type": "bearer"}
