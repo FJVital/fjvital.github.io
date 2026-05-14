@@ -114,7 +114,7 @@
             letter-spacing: 0.02em;
         }
 
-        /* Primary — solid indigo */
+        /* Primary — solid gray */
         .btn-primary {
             background: var(--clr-accent);
             border: 2px solid var(--clr-accent);
@@ -131,7 +131,7 @@
         }
         .btn-primary:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
 
-        /* Outline — ghost indigo */
+        /* Outline — ghost gray */
         .btn-outline {
             background: transparent;
             border: 2px solid var(--clr-accent);
@@ -437,14 +437,30 @@
         </p>
 
         <div style="background:var(--clr-surface); border:1px solid var(--clr-border); border-radius:16px; padding:28px 32px; margin-bottom:40px; width:100%; max-width:520px; text-align:left; box-shadow:var(--shadow-card);">
-            <p style="font-size:16px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--clr-text-muted); margin-bottom:20px;">Simple, seamless process</p>
-            <div style="display:flex; flex-direction:column; gap:16px;">
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">1</div><p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Upload your file</p></div>
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">2</div><p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Preview the first 20 rows, perfectly cleaned, and see your price</p></div>
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">3</div><p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Approve and pay if satisfied</p></div>
-                <div style="display:flex; align-items:flex-start; gap:14px;"><div class="step-num">4</div><p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Download your polished file</p></div>
-            </div>
+    <p style="font-size:16px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--clr-text-muted); margin-bottom:20px;">Simple, seamless process</p>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div class="step-num">1</div>
+            <p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Upload your file</p>
         </div>
+        
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div class="step-num">2</div>
+            <p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">
+                Preview the <span style="color:#16a34a; font-weight:800;">first 5 rows</span>, perfectly cleaned, and see your price
+            </p>
+        </div>
+        
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div class="step-num">3</div>
+            <p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Approve and pay if satisfied</p>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+            <div class="step-num">4</div>
+            <p style="font-size:20px; color:var(--clr-text-head); padding-top:3px;">Download your polished file</p>
+        </div>
+    </div>
+</div>
 
         <div style="width:100%; max-width:380px; display:flex; flex-direction:column; gap:12px;">
             <button class="btn-auth btn-login" onclick="showAuth('login')">Sign In</button>
@@ -610,12 +626,15 @@
                 </ul>
 
                 <div id="payment-area">
-                    <p style="font-size:18px; font-weight:700; color:var(--clr-text-head); margin-bottom:12px;">Payment Details</p>
-                    <div id="card-element"></div>
-                    <p id="card-errors" style="color:#dc2626; font-size:14px; font-weight:600; min-height:20px; margin-top:8px;"></p>
-                    <button id="checkout-btn" onclick="checkout()" class="btn-pay" style="margin-top:16px;">Format & Download File</button>
-                    <p style="text-align:center; font-size:14px; color:var(--clr-text-muted); margin-top:12px; font-weight:500;">🔒 Secure, one-time payment. No subscriptions.</p>
-                </div>
+    <p style="font-size:18px; font-weight:700; color:var(--clr-text-head); margin-bottom:12px;">Payment Details</p>
+    <div id="card-element"></div>
+    <p id="card-errors" style="color:#dc2626; font-size:14px; font-weight:600; min-height:20px; margin-top:8px;"></p>
+    <button id="checkout-btn" onclick="checkout()" class="btn-pay" style="margin-top:16px;">Format & Download File</button>
+    
+    <p style="text-align:center; font-size:28px; color:#16a34a; margin-top:20px; margin-bottom:10px; font-weight:700;">
+        🔒 Secure, one-time payment. No subscriptions.
+    </p>
+</div>
 
                 <div id="success-area" style="display:none;" class="success-banner fade-in">
                     <div style="font-size:48px; margin-bottom:12px;">✅</div>
