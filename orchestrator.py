@@ -18,8 +18,8 @@ def run_orchestrator(input_file, output_file):
     """
     Reads a raw CSV, maps headers to Shopify format using Gemini AI (JSON mode),
     and saves the synchronized version.
-    Primary model: gemini-2.0-flash (stable, high capacity)
-    Fallback model: gemini-2.0-flash-lite (if primary is overloaded)
+    Primary model: gemini-2.5-flash (stable, high capacity)
+    Fallback model: gemini-2.5-flash-lite (if primary is overloaded)
     """
     if not client:
         print("Orchestrator Error: Gemini client not initialized. GEMINI_API_KEY missing.")
@@ -49,15 +49,15 @@ def run_orchestrator(input_file, output_file):
             "Variant Price", "Variant Compare At Price", "Image Src"
         ]
 
-        # AI PROMPT: TEACHING THE MAPPING (STRICT JSON)
+        # --- UPDATED AI PROMPT: AUTO-CATEGORIZATION INJECTION ---
         prompt = (
             f"Map these input headers to the target headers based on the sample data.\n"
             f"Input headers: {headers}\n"
             f"Sample data: {sample_rows}\n"
             f"Target headers: {shopify_headers}\n\n"
-            f"Return a strict JSON object where the keys are the exact Target headers, "
-            f"and the values are the integer index (0-based) of the matching Input header. "
-            f"If there is no match for a target header, use null as the value. "
+            f"Return a strict JSON object where the keys are the exact Target headers.\n"
+            f"For most keys, the value must be the integer index (0-based) of the matching Input header. If there is no match, use null.\n"
+            f"SPECIAL INSTRUCTION FOR 'Type': You are an expert E-commerce Merchandiser. Analyze the sample data to determine what kind of products these are. Instead of an integer index, output a standard, 1-to-3 word product category string (e.g., 'Smart Watch', 'Phone Case', 'Leather Band') as the value for the 'Type' key.\n"
             f"Do not write any other text."
         )
 
@@ -92,17 +92,21 @@ def run_orchestrator(input_file, output_file):
         if response is None:
             raise last_error
 
-        # PARSE AI JSON RESPONSE SAFELY
+        # --- BULLETPROOF JSON PARSER ---
         json_text = response.text.strip()
-        if json_text.startswith("```json"):
-            json_text = json_text[7:]
-        elif json_text.startswith("```"):
-            json_text = json_text[3:]
+        
+        # Aggressively hunt for the first { and the last }
+        start_idx = json_text.find('{')
+        end_idx = json_text.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            # Slice out only the valid JSON dictionary
+            json_text = json_text[start_idx:end_idx+1]
+        else:
+            raise ValueError(f"No JSON dictionary found in AI response: {json_text}")
 
-        if json_text.endswith("```"):
-            json_text = json_text[:-3]
-
-        mapping_dict = json.loads(json_text.strip())
+        mapping_dict = json.loads(json_text)
+        # -----------------------------------
 
         # TRANSFORM AND SAVE
         with open(output_file, 'w', newline='', encoding='utf-8') as f:
@@ -112,11 +116,18 @@ def run_orchestrator(input_file, output_file):
             for row in raw_data:
                 new_row = []
                 for target_header in shopify_headers:
-                    idx = mapping_dict.get(target_header)
-                    if isinstance(idx, int) and 0 <= idx < len(row):
-                        new_row.append(row[idx])
+                    val = mapping_dict.get(target_header)
+                    
+                    # --- UPDATED LOGIC: INJECT THE CATEGORY STRING ---
+                    # If it's a valid integer index from the CSV
+                    if isinstance(val, int) and not isinstance(val, bool) and 0 <= val < len(row):
+                        new_row.append(row[val])
+                    # If the AI passed us the custom String category for Type
+                    elif target_header == "Type" and isinstance(val, str):
+                        new_row.append(val)
                     else:
                         new_row.append("")
+                        
                 writer.writerow(new_row)
 
         return True

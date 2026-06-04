@@ -666,28 +666,20 @@
                 </ul>
 
                 <div id="credit-area" style="display:none; text-align:center; padding: 20px 0; border: 2px solid #00ffaa; border-radius: 12px; background: #121212; margin-bottom: 16px;">
-                    <p id="vip-credit-msg" style="font-size:20px; font-weight:700; color:#fff; margin-bottom:12px;">✨ You have VIP Free Runs available!</p>
+                    <p style="font-size:20px; font-weight:700; color:#fff; margin-bottom:12px;">✨ You have VIP Free Runs available!</p>
                     <button id="use-credit-btn" onclick="useFreeCredit()" class="btn-primary btn-neon">Format for Free (1 Credit)</button>
                 </div>
 
                 <div id="payment-area">
-    <div id="guest-upsell-banner" style="background: var(--clr-accent-pale); border: 1px solid var(--clr-accent-mid); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-        <p style="font-size: 16px; font-weight: 600; color: var(--clr-text-head);">
-            Want to download this file for free? <br>
-            <a href="#" onclick="logout();" style="color: var(--clr-accent); text-decoration: underline;">Create a free account</a> to claim your 3 VIP Free Runs.
-        </p>
-    </div>
-
     <p style="font-size:18px; font-weight:700; color:var(--clr-text-head); margin-bottom:12px;">Payment Details</p>
     <div id="card-element"></div>
-    <p id="card-errors" style="color:#8e0be6; font-size:14px; font-weight:600; min-height:20px; margin-top:8px;"></p>
+    <p id="card-errors" style="color:#dc2626; font-size:14px; font-weight:600; min-height:20px; margin-top:8px;"></p>
     <button id="checkout-btn" onclick="checkout()" class="btn-pay" style="margin-top:16px;">Format & Download File</button>
     
-    <p style="text-align:center; font-size:20px; color:#0cf820; margin-top:20px; margin-bottom:10px; font-weight:700;">
+    <p style="text-align:center; font-size:20px; color:#0d27bb; margin-top:20px; margin-bottom:10px; font-weight:700;">
         🔒 Secure, one-time payment. No subscriptions.
     </p>
 </div>
-
 
                 <div id="success-area" style="display:none;" class="success-banner fade-in">
                     <div style="font-size:48px; margin-bottom:12px;">✅</div>
@@ -727,7 +719,7 @@
             Questions? Contact us at <a href="mailto:support@flashfix.io" style="color:var(--clr-text-head); font-weight:600;">support@flashfix.io</a>
         </p>
         <p>
-            <span style="color:var(--clr-text-muted); font-size:14px;">© 2026 flashfix.io · Proprietary Software. All rights reserved.</span>
+            <span style="color:var(--clr-text-muted); font-size:14px;">© 2026 flashfix.io</span>
             <span class="divider">·</span>
             <a class="footer-link" href="#" onclick="openModal('support');return false;">Support</a>
             <span class="divider">·</span>
@@ -836,7 +828,6 @@
     let currentJobId = null;
     let currentFilename = '';
     let isGuest = false;
-    let authMode = 'login'; // FIX #3: track login vs create-account mode
 
     // === STRIPE ===
     const stripe = Stripe('pk_live_51TEdygIWmBbgAiSN4pybnsKztS1KVUDiBZhvaHqb6qMa2HiuNlbFPDr578zr0iIuTpKT9x9FWZqXVIi1LzDUJr2X00PL39nOR5');
@@ -862,7 +853,6 @@
     function showLanding() { isGuest = false; showView('view-landing'); }
 
     function showAuth(path) {
-        authMode = path; // FIX #3: remember which mode we're in
         const cfg = {
             login:  { title:'Access Workspace',  sub:'Enter your credentials to continue.',           btnBg:'#000000' },
             create: { title:'Create Account',     sub:'Choose an email and password to get started.', btnBg:'#000000' }
@@ -881,40 +871,14 @@
         showView('view-auth');
     }
 
-    // FIX #2: startGuest now REGISTERS a random ephemeral account instead of
-    // trying to log in with credentials that don't exist yet.
     async function startGuest() {
         isGuest = true;
         document.getElementById('guest-spinner').style.display = 'inline-block';
         document.getElementById('guest-label').innerText = 'Connecting...';
-        try {
-            const rand = Math.random().toString(36).substr(2, 8);
-            const guestUser = `guest_${rand}@flashfix.io`;
-            const guestPass = Math.random().toString(36).substr(2, 12) + 'Ff1!';
-
-            // Call /register (accepts JSON) — creates the account AND returns a token
-            const res = await fetch(`${API_BASE_URL}/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: guestUser, password: guestPass })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('username', guestUser);
-                localStorage.setItem('isGuest', 'true');
-                showWorkspace();
-            } else {
-                // Silently fail — guest is optional, don't block the UI
-                isGuest = false;
-            }
-        } catch(e) {
-            isGuest = false;
-        } finally {
-            document.getElementById('guest-spinner').style.display = 'none';
-            document.getElementById('guest-label').innerText = 'Try Without Signing Up';
-        }
+        const rand = Math.random().toString(36).substr(2,8);
+        await doLogin(`guest_${rand}@flashfix.io`, Math.random().toString(36).substr(2,12)+'Ff1!', true);
+        document.getElementById('guest-spinner').style.display = 'none';
+        document.getElementById('guest-label').innerText = 'Try Without Signing Up';
     }
 
     function togglePassword() {
@@ -925,7 +889,6 @@
         else { f.type='text'; on.style.display='block'; off.style.display='none'; }
     }
 
-    // FIX #3: doAuth now routes to /register or /token based on authMode
     async function doAuth() {
         const user = document.getElementById('username').value.trim();
         const pass = document.getElementById('password').value;
@@ -935,73 +898,40 @@
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> Connecting...';
         err.innerText = '';
-
-        if (authMode === 'create') {
-            await doRegister(user, pass);
-        } else {
-            await doLogin(user, pass);
-        }
+        await doLogin(user, pass, false);
     }
 
-    // FIX #1 + #3: doLogin sends proper form-encoded data to /token.
-    // OAuth2PasswordRequestForm requires application/x-www-form-urlencoded —
-    // the previous JSON body was the direct cause of every 422 error.
-    async function doLogin(username, password) {
+    // === AUTHENTICATION ===
+    async function doLogin(email, password, silent) {
         try {
-            const body = new URLSearchParams();
-            body.append('username', username);
-            body.append('password', password);
-
-            const res = await fetch(`${API_BASE_URL}/token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body.toString()
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                localStorage.setItem('token', data.access_token);
-                localStorage.setItem('username', username);
-                localStorage.setItem('isGuest', 'false');
-                showWorkspace();
-            } else {
-                const e = await res.json().catch(() => ({}));
-                document.getElementById('auth-error').innerText = e.detail || 'Login failed. Check your credentials.';
-                const btn = document.getElementById('auth-btn');
-                btn.disabled = false; btn.innerHTML = 'CONTINUE';
-            }
-        } catch(e) {
-            document.getElementById('auth-error').innerText = 'Network error. Please try again.';
-            const btn = document.getElementById('auth-btn');
-            btn.disabled = false; btn.innerHTML = 'CONTINUE';
-        }
-    }
-
-    // FIX #3: Registration calls /register (JSON endpoint) and logs in automatically
-    async function doRegister(username, password) {
-        try {
-            const res = await fetch(`${API_BASE_URL}/register`, {
-                method: 'POST',
+            const res = await fetch(`${API_BASE_URL}/token`, { 
+                method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username: email, password: password || '' })
             });
 
             if (res.ok) {
                 const data = await res.json();
                 localStorage.setItem('token', data.access_token);
-                localStorage.setItem('username', username);
-                localStorage.setItem('isGuest', 'false');
+                localStorage.setItem('username', email);
+                localStorage.setItem('isGuest', isGuest ? 'true' : 'false');
                 showWorkspace();
             } else {
-                const e = await res.json().catch(() => ({}));
-                document.getElementById('auth-error').innerText = e.detail || 'Could not create account.';
+                if (!silent) {
+                    const e = await res.json();
+                    document.getElementById('auth-error').innerText = e.detail || 'Login failed.';
+                    const btn = document.getElementById('auth-btn');
+                    btn.disabled = false; btn.innerHTML = 'CONTINUE';
+                }
+                isGuest = false;
+            }
+        } catch(e) {
+            if (!silent) {
+                document.getElementById('auth-error').innerText = 'Network error. Please try again.';
                 const btn = document.getElementById('auth-btn');
                 btn.disabled = false; btn.innerHTML = 'CONTINUE';
             }
-        } catch(e) {
-            document.getElementById('auth-error').innerText = 'Network error. Please try again.';
-            const btn = document.getElementById('auth-btn');
-            btn.disabled = false; btn.innerHTML = 'CONTINUE';
+            isGuest = false;
         }
     }
 
@@ -1129,26 +1059,23 @@
 
     /// === RENDER PREVIEW ===
     function renderPreview(data) {
-        document.getElementById('quote-price').innerText = `$${((data.price_cents || 500) / 100).toFixed(2)}`;
+        document.getElementById('quote-price').innerText = `$${(data.price / 100).toFixed(2)}`;
 
         const fname = currentFilename || 'Your file';
         document.getElementById('preview-filename').innerHTML =
             `<span style="color:var(--clr-accent); font-weight:700;">${fname}</span> <span style="color:var(--clr-text-head);">is now a pristine Shopify CSV.</span>`;
 
-        document.getElementById('receipt-rows').innerText = (data.rows_detected || 0).toLocaleString();
+        document.getElementById('receipt-rows').innerText = data.rows.toLocaleString();
 
         const guest = localStorage.getItem('isGuest') === 'true';
         document.getElementById('s3-line').style.display = guest ? 'none' : 'list-item';
 
-        // FIX #6: backend never returns data.headers — derive from first preview row
-        const headers = (data.preview && data.preview.length > 0) ? Object.keys(data.preview[0]) : [];
-
         document.getElementById('preview-table-wrap').style.display = 'block';
         document.getElementById('preview-thead').innerHTML =
-            '<tr>' + headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+            '<tr>' + data.headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
 
         document.getElementById('preview-tbody').innerHTML = data.preview.map(row =>
-            '<tr>' + headers.map(h => {
+            '<tr>' + data.headers.map(h => {
                 let cellValue = row[h];
                 if (cellValue) {
                     let colName = h.toLowerCase();
@@ -1165,20 +1092,15 @@
         ).join('');
 
         // --- NEW CREDIT LOGIC ---
-       if (data.credits && data.credits > 0) {
+        if (data.credits && data.credits > 0) {
             document.getElementById('credit-badge').style.display = 'flex';
             document.getElementById('credit-text').innerText = `${data.credits} Free Runs`;
             document.getElementById('payment-area').style.display = 'none';
             document.getElementById('credit-area').style.display = 'block';
-            document.getElementById('vip-credit-msg').innerText = `✨ You have VIP ${data.credits} Free Credit${data.credits === 1 ? '' : 's'} available!`;
         } else {
             document.getElementById('credit-badge').style.display = 'none';
             document.getElementById('credit-area').style.display = 'none';
             document.getElementById('payment-area').style.display = 'block';
-            
-            // ---> ADD THIS LINE: Hide the upsell banner if they are NOT a guest <---
-            document.getElementById('guest-upsell-banner').style.display = guest ? 'block' : 'none';
-
             if (!isCardMounted) { cardElement.mount('#card-element'); isCardMounted=true; }
         }
 
@@ -1197,15 +1119,11 @@
                 method:'POST',
                 headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` }
             });
-            
             if (res.ok) {
-                // Credit deducted. Just reveal the success screen.
-                // The user must manually click "Download CSV Now" to get the file.
                 document.getElementById('credit-area').style.display = 'none';
                 document.getElementById('success-area').style.display = 'block';
                 document.getElementById('success-area').scrollIntoView({ behavior:'smooth', block:'center' });
                 if (!isGuest) fetchHistory();
-
             } else {
                 throw new Error('Failed to apply credit. Please contact support.');
             }
@@ -1217,57 +1135,55 @@
     }
 
     // === CHECKOUT ===
-    // FIX #7: was calling /create-payment-intent which doesn't exist.
-    // Backend uses Stripe Checkout Sessions (/create-checkout-session) which
-    // redirects to Stripe-hosted page. The in-page card element flow is removed.
     async function checkout() {
         const btn = document.getElementById('checkout-btn');
         const err = document.getElementById('card-errors');
-        btn.innerHTML = '<span class="spinner" style="border-top-color:#fff;"></span> Redirecting to payment...';
+        btn.innerHTML = '<span class="spinner" style="border-top-color:#fff;"></span> Processing...';
         btn.disabled = true; err.innerText = '';
         try {
-            const res = await fetch(`${API_BASE_URL}/create-checkout-session/${currentJobId}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            const ir = await fetch(`${API_BASE_URL}/create-payment-intent/${currentJobId}`, {
+                headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` }
             });
-            if (!res.ok) throw new Error('Could not create payment session.');
-            const { url } = await res.json();
-            // Redirect to Stripe-hosted checkout page
-            window.location.href = url;
-        } catch(e) {
-            err.innerText = e.message;
-            btn.innerHTML = 'Format & Download File';
-            btn.disabled = false;
-        }
+            if (!ir.ok) throw new Error('Could not initialize payment.');
+            const { client_secret } = await ir.json();
+
+            // --- STRIPE RECEIPT FIX: Grab email and pass to billing_details ---
+            const userEmail = localStorage.getItem('username') || '';
+            const { paymentIntent, error } = await stripe.confirmCardPayment(client_secret, {
+                payment_method: { 
+                    card: cardElement,
+                    billing_details: { 
+                        email: userEmail 
+                    }
+                }
+            });
+            // ------------------------------------------------------------------
+
+            if (error) { err.innerText=error.message; btn.innerHTML='Format & Download File'; btn.disabled=false; return; }
+
+            const vr = await fetch(`${API_BASE_URL}/verify-payment/${currentJobId}`, {
+                method:'POST',
+                headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}`, 'Content-Type':'application/json' },
+                body: JSON.stringify({ payment_intent_id: paymentIntent.id })
+            });
+
+            if (vr.ok) {
+                document.getElementById('payment-area').style.display = 'none';
+                document.getElementById('success-area').style.display = 'block';
+                document.getElementById('success-area').scrollIntoView({ behavior:'smooth', block:'center' });
+                if (!isGuest) fetchHistory();
+            } else { throw new Error('Payment verification failed. Please contact support.'); }
+        } catch(e) { err.innerText=e.message; btn.innerHTML='Format & Download File'; btn.disabled=false; }
     }
 
-    // === FORCE DOWNLOAD FIX FOR MANUAL BUTTON ===
     function downloadFile(jobId) {
-        fetch(`${API_BASE_URL}/download/${jobId}`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
-        .then(r => {
-            if (!r.ok) throw new Error(`Server returned ${r.status}. The file may not be paid or may have expired.`);
-            return r.json();
-        })
-        .then(d => {
-            if (!d.download_url) throw new Error('No download URL returned by server.');
-            // Extract the filename from the URL path (e.g. /files/shopify_myfile.csv → shopify_myfile.csv)
-            const filename = d.download_url.split('/').pop() || 'flashfix_output.csv';
-            const link = document.createElement('a');
-            link.href = `${API_BASE_URL}${d.download_url}`;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        })
-        .catch(err => alert('Download failed: ' + err.message));
+        window.location.href = `${API_BASE_URL}/download/${jobId}?token=${localStorage.getItem('token')}`;
     }
 
     // === HISTORY ===
     async function fetchHistory() {
         try {
-            const res = await fetch(`${API_BASE_URL}/history`, { headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` } });
+            const res = await fetch(`${API_BASE_URL}/my-history`, { headers:{ 'Authorization':`Bearer ${localStorage.getItem('token')}` } });
             const data = await res.json();
             const tb = document.getElementById('history-body');
             if (!data.history || data.history.length === 0) {
@@ -1314,8 +1230,7 @@
         document.getElementById('file-info-card').style.display = 'none';
         document.getElementById('file-info-name').innerText = '';
         document.getElementById('preview-section').style.display = 'none';
-        document.getElementById('payment-area').style.display = 'none';  // let renderPreview() decide
-        document.getElementById('credit-area').style.display = 'none';   // reset credit area too
+        document.getElementById('payment-area').style.display = 'block';
         document.getElementById('success-area').style.display = 'none';
         document.getElementById('checklist-list').innerHTML = '';
         document.getElementById('processing-checklist').style.display = 'none';
@@ -1324,13 +1239,6 @@
         document.getElementById('progress-label').innerText = '0%';
         const btn = document.getElementById('checkout-btn');
         btn.innerHTML = 'Format & Download File'; btn.disabled = false;
-        
-        const vipBtn = document.getElementById('use-credit-btn');
-        if(vipBtn) {
-            vipBtn.innerHTML = 'Format for Free (1 Credit)';
-            vipBtn.disabled = false;
-        } // <--- This bracket was missing!
-
         document.getElementById('card-errors').innerText = '';
         cardElement.unmount(); isCardMounted = false;
         window.scrollTo({ top:0, behavior:'smooth' });

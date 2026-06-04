@@ -1,0 +1,17 @@
+Handle,Title,Body (HTML),Vendor,Type,Tags,Published,Option1 Name,Option1 Value,Variant SKU,Variant Grams,Variant Inventory Tracker,Variant Inventory Qty,Variant Inventory Policy,Variant Fulfillment Service,Variant Price,Variant Compare At Price,Image Src
+physical-product-the-band-t-shirt,Physical Product “The Band” T-Shirt,"Celebrate the timeless legacy of one of rock music's most influential groups with our exclusive The Band Graphic T-Shirt. Perfect for music lovers and vintage style enthusiasts, this t-shirt features a striking graphic of The Band, capturing the essence of their iconic sound and enduring spirit.",Harmony Threads,Graphic shirt,"Unisex, Clothing, Men, Women, Casual, Vintage",True,Size,Small,TheBandTShirt-SG,150.0,shopify,47.0,DENY,manual,19.99,24.99,https://burst.shopifycdn.com/photos/forest-hiker.jpg?width=1000
+physical-product-the-band-t-shirt,,,,,,,,Small,TheBandTShirt-SA,150.0,shopify,42.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Small,TheBandTShirt-SR,150.0,shopify,51.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Medium,TheBandTShirt-MG,177.0,shopify,40.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Medium,TheBandTShirt-MA,177.0,shopify,39.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Medium,TheBandTShirt-MR,177.0,shopify,56.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Large,TheBandTShirt-LG,181.0,shopify,50.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Large,TheBandTShirt-LA,181.0,shopify,44.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,Large,TheBandTShirt-LR,181.0,shopify,34.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,XL,TheBandTShirt-XG,200.0,shopify,27.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,XL,TheBandTShirt-XA,200.0,shopify,43.0,DENY,manual,19.99,24.99,
+physical-product-the-band-t-shirt,,,,,,,,XL,TheBandTShirt-XR,200.0,shopify,40.0,DENY,manual,19.99,24.99,
+digital-product-the-history-of-rock-music,Digital Product The History of Rock Music,"Dive into the rich and electrifying world of rock music with 'The History of Rock Music: From Roots to Revolution.' This comprehensive eBook explores the origins, evolution, and cultural impact of rock music, featuring iconic artists, groundbreaking albums, and pivotal moments in music history. Perfect for music enthusiasts and historians alike. PDF, ePub, Kindle. 8 MB. English.",Harmony Publishing,Digital book,"Rock Music, Music History, eBook, Music Culture, Rock Bands, Music Genres",True,Format,PDF,HRM-EBK-PDF,,,,CONTINUE,music-man-fulfillment,14.99,,
+digital-product-the-history-of-rock-music,,,,,,,,Audio,HRM-EBK-AUD,,,,CONTINUE,music-man-fulfillment,21.99,,
+digital-product-the-history-of-rock-music,,,,,,,,Kindle,HRM-EBK-KND,,,,CONTINUE,music-man-fulfillment,9.99,14.99,
+example-perfume,Example Perfume,,Acme,Perfume,mens perfume example,False,Title,Premium,EX-PERF-MEN,500.0,,,DENY,manual,74.99,80.0,https://burst.shopifycdn.com/photos/black-glass-perfume-bottle-and-spritzer.jpg?width=500

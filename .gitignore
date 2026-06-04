@@ -15,4 +15,7 @@ output.csv
 .env
 *.txt
 .env
-vault/
+vault/.env
+
+.env
+schema_sync.db
