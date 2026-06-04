@@ -19,3 +19,6 @@ vault/.env
 
 .env
 schema_sync.db
+vault/
+uploads/
+*.db
